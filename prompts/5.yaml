@@ -27,17 +27,17 @@ content: |
     Output (JSON ONLY between markers):
     BEGIN_JSON
     {
-      “parameter_id”: “facts”,
-      “score”: 9,
-      “explanation_bullets”: [“Brief note on factual accuracy.”],
-      “weakness”: “Most impactful false claim, or 'Not present'.”,
-      “suggestions”: [“Optional.”],
-      “areas_of_improvement”: [
-        {“quote_verbatim”: “World War II ended in 1946”,
-         “issue”: “WWII ended in 1945, not 1946.”,
-         “fix”: “World War II ended in 1945”,
-         “why_this_helps”: “Japan surrendered Sept 2, 1945 (per multiple sources).”}
+      "parameter_id": "facts",
+      "score": 9,
+      "explanation_bullets": ["Brief note on factual accuracy."],
+      "weakness": "Most impactful false claim, or 'Not present'.",
+      "suggestions": ["Optional."],
+      "areas_of_improvement": [
+        {"quote_verbatim": "World War II ended in 1946",
+         "issue": "WWII ended in 1945, not 1946.",
+         "fix": "World War II ended in 1945",
+         "why_this_helps": "Japan surrendered Sept 2, 1945 (per multiple sources)."}
       ],
-      “summary”: “One-line factual-accuracy summary.”
+      "summary": "One-line factual-accuracy summary."
     }
     END_JSON

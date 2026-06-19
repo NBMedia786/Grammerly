@@ -20,15 +20,15 @@ content: |
     Output (JSON ONLY between markers):
     BEGIN_JSON
     {
-      “parameter_id”: “style”,
-      “score”: 8,
-      “explanation_bullets”: [“Brief note on clarity.”],
-      “weakness”: “Most impactful issue, or 'Not present'.”,
-      “suggestions”: [“Optional.”],
-      “areas_of_improvement”: [
-        {“quote_verbatim”: “due to the fact that”, “issue”: “Wordy phrase.”,
-         “fix”: “because”, “why_this_helps”: “Tighter and clearer.”}
+      "parameter_id": "style",
+      "score": 8,
+      "explanation_bullets": ["Brief note on clarity."],
+      "weakness": "Most impactful issue, or 'Not present'.",
+      "suggestions": ["Optional."],
+      "areas_of_improvement": [
+        {"quote_verbatim": "due to the fact that", "issue": "Wordy phrase.",
+         "fix": "because", "why_this_helps": "Tighter and clearer."}
       ],
-      “summary”: “One-line style summary.”
+      "summary": "One-line style summary."
     }
     END_JSON

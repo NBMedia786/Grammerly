@@ -24,15 +24,15 @@ content: |
     Output (JSON ONLY between markers):
     BEGIN_JSON
     {
-      “parameter_id”: “grammar”,
-      “score”: 9,
-      “explanation_bullets”: [“Brief note on overall grammar quality.”],
-      “weakness”: “Most impactful grammar weakness, or 'Not present'.”,
-      “suggestions”: [“Optional concrete fixes if score < 8.”],
-      “areas_of_improvement”: [
-        {“quote_verbatim”: “they was late”, “issue”: “Subject-verb disagreement.”,
-         “fix”: “they were late”, “why_this_helps”: “Plural subject takes 'were'.”}
+      "parameter_id": "grammar",
+      "score": 9,
+      "explanation_bullets": ["Brief note on overall grammar quality."],
+      "weakness": "Most impactful grammar weakness, or 'Not present'.",
+      "suggestions": ["Optional concrete fixes if score < 8."],
+      "areas_of_improvement": [
+        {"quote_verbatim": "they was late", "issue": "Subject-verb disagreement.",
+         "fix": "they were late", "why_this_helps": "Plural subject takes 'were'."}
       ],
-      “summary”: “One-line grammar summary.”
+      "summary": "One-line grammar summary."
     }
     END_JSON

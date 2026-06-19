@@ -206,6 +206,13 @@ def _extract_balanced_json(text: str) -> Optional[str]:
                 return text[start : i + 1]
     return None
 
+def _normalize_curly_quotes(s: str) -> str:
+    """Translate curly/smart quotes to straight ASCII equivalents."""
+    return (
+        s.replace("“", '"').replace("”", '"')
+         .replace("‘", "'").replace("’", "'")
+    )
+
 def extract_review_json(model_output: str) -> Optional[Dict[str, Any]]:
     if not model_output:
         return None
@@ -227,7 +234,14 @@ def extract_review_json(model_output: str) -> Optional[Dict[str, Any]]:
             try:
                 return json.loads(s2)
             except Exception:
-                continue
+                pass
+        # Third attempt: normalize curly quotes then strip trailing commas
+        try:
+            s3 = _normalize_curly_quotes(s)
+            s3 = re.sub(r",\s*([\]}])", r"\1", s3)
+            return json.loads(s3)
+        except Exception:
+            continue
     return None
 
 # -------------------- AOI normalization for UI -------------------- #

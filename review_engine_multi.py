@@ -218,9 +218,17 @@ def _balanced(text: str) -> Optional[str]:
                 return text[start:i+1]
     return None
 
+def _normalize_curly_quotes(s: str) -> str:
+    """Translate curly/smart quotes to straight ASCII equivalents."""
+    return (
+        s.replace("“", '"').replace("”", '"')
+         .replace("‘", "'").replace("’", "'")
+    )
+
 def _parse_json(text: str) -> Dict[str, Any]:
     """
-    Try multiple strategies to extract valid JSON. Tolerates trailing commas.
+    Try multiple strategies to extract valid JSON. Tolerates trailing commas
+    and curly/smart quotes (U+201C/U+201D/U+2018/U+2019).
     """
     for candidate in filter(None, (_between_tokens(text, _BEGIN, _END),
                                   _fenced(text), _balanced(text))):
@@ -231,7 +239,14 @@ def _parse_json(text: str) -> Dict[str, Any]:
                 fixed = re.sub(r",\s*([\]}])", r"\1", candidate)
                 return json.loads(fixed)
             except Exception:
-                continue
+                pass
+        # Third attempt: normalize curly quotes then strip trailing commas
+        try:
+            normalized = _normalize_curly_quotes(candidate)
+            normalized = re.sub(r",\s*([\]}])", r"\1", normalized)
+            return json.loads(normalized)
+        except Exception:
+            continue
     raise ValueError("Could not parse JSON from model output")
 
 # -----------------------------------------------------------------------------#

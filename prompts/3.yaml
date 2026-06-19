@@ -19,15 +19,15 @@ content: |
     Output (JSON ONLY between markers):
     BEGIN_JSON
     {
-      “parameter_id”: “punctuation”,
-      “score”: 9,
-      “explanation_bullets”: [“Brief note on punctuation.”],
-      “weakness”: “Most impactful issue, or ‘Not present’.”,
-      “suggestions”: [“Optional.”],
-      “areas_of_improvement”: [
-        {“quote_verbatim”: “Its a long day”, “issue”: “Missing apostrophe in contraction.”,
-         “fix”: “It’s a long day”, “why_this_helps”: “’It’s’ = ‘it is’.”}
+      "parameter_id": "punctuation",
+      "score": 9,
+      "explanation_bullets": ["Brief note on punctuation."],
+      "weakness": "Most impactful issue, or 'Not present'.",
+      "suggestions": ["Optional."],
+      "areas_of_improvement": [
+        {"quote_verbatim": "Its a long day", "issue": "Missing apostrophe in contraction.",
+         "fix": "It's a long day", "why_this_helps": "'It's' = 'it is'."}
       ],
-      “summary”: “One-line punctuation summary.”
+      "summary": "One-line punctuation summary."
     }
     END_JSON
