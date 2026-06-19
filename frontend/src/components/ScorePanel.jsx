@@ -41,12 +41,11 @@ export default function ScorePanel({ result }) {
       <Bullets title="Strengths" items={result.strengths} />
       <Bullets title="Weaknesses" items={result.weaknesses} />
       <Bullets title="Suggestions" items={result.suggestions} />
-      <Bullets title="Drop-off Risks" items={result.drop_off_risks} />
 
-      {result.viral_quotient && (
+      {result.summary && (
         <div className="block">
-          <h4>Viral Quotient</h4>
-          <p>{result.viral_quotient}</p>
+          <h4>Summary</h4>
+          <p>{result.summary}</p>
         </div>
       )}
     </div>

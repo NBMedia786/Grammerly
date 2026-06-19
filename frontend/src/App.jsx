@@ -1,12 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react'
-import { analyzeFile } from './api.js'
+import { analyzeFile, analyzeText, getHistory, getHistoryItem, deleteHistoryItem, getStorage } from './api.js'
 import { buildEditedText, copyToClipboard } from './highlight.js'
 import ScriptView from './components/ScriptView.jsx'
 import SuggestionList from './components/SuggestionList.jsx'
 import ScorePanel from './components/ScorePanel.jsx'
+import HistoryView from './components/HistoryView.jsx'
 
 export default function App() {
-  const [view, setView] = useState('upload') // upload | loading | review | error
+  const [view, setView] = useState('upload') // upload | loading | review | error | history
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
   const [fileName, setFileName] = useState('')
@@ -15,6 +16,11 @@ export default function App() {
   const [activeAid, setActiveAid] = useState(null)
   const [decisions, setDecisions] = useState({}) // aid -> 'applied' | 'dismissed'
   const fileInput = useRef(null)
+
+  const [pasteText, setPasteText] = useState('')
+  const [historyItems, setHistoryItems] = useState([])
+  const [storage, setStorage] = useState(null)
+  const [saveWarning, setSaveWarning] = useState(false)
 
   // Ordered suggestion items (by position in the script).
   const orderedItems = useMemo(() => {
@@ -47,6 +53,13 @@ export default function App() {
     [orderedItems],
   )
 
+  function onResult(data) {
+    setResult(data); setDecisions({}); setSelectedParam(null); setActiveAid(null)
+    setSaveWarning(data && data.saved === false)
+    setView('review')
+    getStorage().then(setStorage).catch(() => {})
+  }
+
   async function onPick(file) {
     if (!file) return
     setFileName(file.name)
@@ -54,15 +67,18 @@ export default function App() {
     setError('')
     try {
       const data = await analyzeFile(file)
-      setResult(data)
-      setDecisions({})
-      setSelectedParam(null)
-      setActiveAid(null)
-      setView('review')
+      onResult(data)
     } catch (e) {
       setError(e.message || 'Something went wrong.')
       setView('error')
     }
+  }
+
+  async function onAnalyzeText() {
+    if (!pasteText.trim()) return
+    setFileName('pasted text'); setView('loading'); setError('')
+    try { onResult(await analyzeText(pasteText)) }
+    catch (e) { setError(e.message || 'Something went wrong.'); setView('error') }
   }
 
   function setDecision(aid, decision) {
@@ -78,6 +94,23 @@ export default function App() {
   function reset() {
     setResult(null); setView('upload'); setError(''); setFileName('')
     setDecisions({}); setSelectedParam(null); setActiveAid(null)
+  }
+
+  async function openHistory() {
+    try {
+      const [items, usage] = await Promise.all([getHistory(), getStorage()])
+      setHistoryItems(items); setStorage(usage); setView('history')
+    } catch (e) { setError(e.message); setView('error') }
+  }
+  async function openHistoryItem(id) {
+    try { onResult(await getHistoryItem(id)) }
+    catch (e) { setError(e.message); setView('error') }
+  }
+  async function removeHistoryItem(id) {
+    if (!window.confirm('Permanently delete this saved review? This cannot be undone.')) return
+    const usage = await deleteHistoryItem(id)
+    setStorage(usage)
+    setHistoryItems(await getHistory())
   }
 
   async function copyEdited() {
@@ -96,45 +129,71 @@ export default function App() {
     URL.revokeObjectURL(url)
   }
 
+  // ---------- History screen ----------
+  if (view === 'history') {
+    return (
+      <div className="app">
+        <header className="topbar"><div className="brand">📝 Writing Assistant</div></header>
+        <div className="center-screen">
+          <HistoryView items={historyItems} usage={storage}
+            onOpen={openHistoryItem} onDelete={removeHistoryItem} onBack={reset} />
+        </div>
+      </div>
+    )
+  }
+
   // ---------- Upload / loading / error screens ----------
   if (view !== 'review') {
     return (
       <div className="app">
         <header className="topbar">
-          <div className="brand">📝 Viral Script Reviewer</div>
+          <div className="brand">📝 Writing Assistant</div>
+          <div className="topbar-right">
+            <button className="btn ghost" onClick={openHistory}>📁 History</button>
+          </div>
         </header>
         <div className="center-screen">
           {view === 'loading' && (
             <div className="loadcard">
               <div className="spinner" />
-              <p>Analyzing <strong>{fileName}</strong> across 7 storytelling parameters…</p>
-              <p className="muted">This runs 8 AI passes, so it can take a bit.</p>
+              <p>Checking <strong>{fileName}</strong> for grammar, spelling, punctuation, style &amp; facts…</p>
+              <p className="muted">This runs several AI passes, so it can take a bit.</p>
             </div>
           )}
           {view === 'error' && (
             <div className="loadcard">
-              <h3>Couldn’t analyze that file</h3>
+              <h3>Couldn't analyze that file</h3>
               <p className="errmsg">{error}</p>
               <button className="btn primary" onClick={reset}>Try again</button>
             </div>
           )}
           {view === 'upload' && (
-            <div
-              className="dropzone"
-              onClick={() => fileInput.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); onPick(e.dataTransfer.files?.[0]) }}
-            >
-              <div className="dz-icon">⬆️</div>
-              <h2>Upload a script</h2>
-              <p className="muted">Drag &amp; drop or click — .docx, .pdf, or .txt</p>
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".docx,.pdf,.txt"
-                hidden
-                onChange={(e) => onPick(e.target.files?.[0])}
-              />
+            <div>
+              <div
+                className="dropzone"
+                onClick={() => fileInput.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); onPick(e.dataTransfer.files?.[0]) }}
+              >
+                <div className="dz-icon">⬆️</div>
+                <h2>Upload a script</h2>
+                <p className="muted">Drag &amp; drop or click — .docx, .pdf, or .txt</p>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept=".docx,.pdf,.txt"
+                  hidden
+                  onChange={(e) => onPick(e.target.files?.[0])}
+                />
+              </div>
+              <div className="paste-area">
+                <div className="paste-or">or paste text</div>
+                <textarea className="paste-input" rows={8} value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  placeholder="Paste your text here (min 50 characters)…" />
+                <button className="btn primary" disabled={pasteText.trim().length < 50}
+                  onClick={onAnalyzeText}>Analyze text</button>
+              </div>
             </div>
           )}
         </div>
@@ -146,16 +205,20 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">📝 Viral Script Reviewer</div>
+        <div className="brand">📝 Writing Assistant</div>
         <div className="topbar-right">
           <span className="counts">
             {counts.open} open · <span className="ok">{counts.applied} applied</span> · {counts.dismissed} dismissed
           </span>
           <button className="btn" onClick={copyEdited}>Copy edited script</button>
           <button className="btn" onClick={downloadEdited}>Download</button>
+          <button className="btn ghost" onClick={openHistory}>📁 History</button>
           <button className="btn ghost" onClick={reset}>New review</button>
         </div>
       </header>
+      {saveWarning && (
+        <div className="save-warning">History full (50 GB) — delete old reviews to save new ones.</div>
+      )}
 
       <div className="layout">
         <aside className="col-left">

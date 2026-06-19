@@ -154,3 +154,25 @@ body {
   .layout { grid-template-columns: 1fr; }
   .col-left, .col-right { max-height: none; }
 }
+
+.paste-area { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; width: min(680px, 92vw); }
+.paste-or { color: #9aa4b2; font-size: 13px; text-align: center; }
+.paste-input { width: 100%; resize: vertical; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid #2a2f37; background: #1c2026; color: inherit; font: inherit; }
+.storagebar { margin: 10px 0 18px; }
+.storagebar-label { font-size: 12.5px; color: #9aa4b2; margin-bottom: 4px; }
+.storagebar-track { height: 10px; border-radius: 999px; background: #2a2f37; overflow: hidden; }
+.storagebar-fill { height: 100%; background: #4f8cff; transition: width .2s ease; }
+.storagebar-fill.danger { background: #ef4444; }
+.historyview { width: min(760px, 94vw); }
+.history-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.history-list { list-style: none; padding: 0; margin: 0; }
+.history-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 1px solid #2a2f37; border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.history-open { flex: 1; text-align: left; background: none; border: 0; color: inherit; cursor: pointer;
+  display: flex; flex-direction: column; gap: 3px; }
+.history-title { font-weight: 600; }
+.history-meta { font-size: 12px; color: #9aa4b2; }
+.btn.ghost.danger { color: #ef4444; }
+.save-warning { background: #ef444422; border: 1px solid #ef4444; color: #ef4444;
+  padding: 8px 14px; text-align: center; font-size: 13.5px; }
