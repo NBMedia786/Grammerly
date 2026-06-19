@@ -53,3 +53,20 @@ def test_save_review_handles_write_error(monkeypatch, tmp_path):
     r = h.save_review({"script_text": "x"}, "doc")
     assert r["saved"] is False and r["reason"] == "write_error"
     assert h.list_reviews() == []  # no partial file left behind
+
+
+def test_rename_review(monkeypatch, tmp_path):
+    h = _fresh(monkeypatch, tmp_path)
+    r = h.save_review({"script_text": "hi"}, "old")
+    res = h.rename_review(r["id"], "  New Name  ")
+    assert res["renamed"] is True and res["title"] == "New Name"
+    assert h.load_review(r["id"])["title"] == "New Name"
+    assert h.list_reviews()[0]["title"] == "New Name"
+
+
+def test_rename_rejects_bad_id(monkeypatch, tmp_path):
+    h = _fresh(monkeypatch, tmp_path)
+    assert h.rename_review("../evil", "x")["renamed"] is False
+    h2 = _fresh(monkeypatch, tmp_path)
+    r = h2.save_review({"script_text": "hi"}, "t")
+    assert h2.rename_review(r["id"], "   ")["renamed"] is False  # empty title rejected

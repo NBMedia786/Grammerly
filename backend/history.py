@@ -121,3 +121,20 @@ def delete_review(rid: str) -> Dict[str, Any]:
         except OSError:
             deleted = False
     return {"deleted": deleted, **storage_usage()}
+
+
+def rename_review(rid: str, new_title: str) -> Dict[str, Any]:
+    """Rewrite a saved review's title in place. Returns {renamed, title}."""
+    title = (new_title or "").strip()[:120]
+    path = _file_for(rid)
+    if not title or not path or not os.path.exists(path):
+        return {"renamed": False, "title": None}
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            rec = json.load(fh)
+        rec["title"] = title
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(rec, fh, ensure_ascii=False)
+        return {"renamed": True, "title": title}
+    except Exception:
+        return {"renamed": False, "title": None}

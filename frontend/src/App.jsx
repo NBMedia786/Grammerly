@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  analyzeFile, analyzeText, getHistory, getHistoryItem, deleteHistoryItem, getStorage,
+  analyzeFile, analyzeText, getHistory, getHistoryItem, deleteHistoryItem, renameHistoryItem, getStorage,
 } from './api.js'
 import { buildEditedText, copyToClipboard } from './highlight.js'
 import Sidebar from './components/Sidebar.jsx'
@@ -118,6 +118,14 @@ export default function App() {
       setStorage(usage)
       setHistoryItems(await getHistory())
       if (result && result.id === id) reset()
+    } catch (_) { /* ignore */ }
+  }
+
+  async function renameItem(id, title) {
+    try {
+      await renameHistoryItem(id, title)
+      setHistoryItems(await getHistory())
+      if (result && result.id === id) setFileName(title)
     } catch (_) { /* ignore */ }
   }
 
@@ -335,6 +343,7 @@ export default function App() {
         onNew={reset}
         onOpen={openHistoryItem}
         onDelete={removeHistoryItem}
+        onRename={renameItem}
       />
       <main className="main">
         <MainContent />

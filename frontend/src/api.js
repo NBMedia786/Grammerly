@@ -36,4 +36,10 @@ export async function getHistoryItem(id) { return _json(await fetch(`/api/histor
 export async function deleteHistoryItem(id) {
   return _json(await fetch(`/api/history/${id}`, { method: 'DELETE' }))
 }
+export async function renameHistoryItem(id, title) {
+  return _json(await fetch(`/api/history/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  }))
+}
 export async function getStorage() { return _json(await fetch('/api/storage')) }

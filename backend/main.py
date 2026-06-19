@@ -217,6 +217,18 @@ def get_history_item(rid: str):
     return rec
 
 
+class RenameIn(BaseModel):
+    title: str
+
+
+@app.patch("/api/history/{rid}")
+def rename_history_item(rid: str, body: RenameIn):
+    res = history_store.rename_review(rid, body.title)
+    if not res["renamed"]:
+        raise HTTPException(status_code=400, detail="Could not rename that review.")
+    return res
+
+
 @app.delete("/api/history/{rid}")
 def delete_history_item(rid: str):
     return history_store.delete_review(rid)

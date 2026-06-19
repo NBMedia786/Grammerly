@@ -128,22 +128,24 @@ button { font-family: inherit; }
 
 .sb-item {
   position: relative;
-  display: flex; align-items: center; gap: 10px;
-  width: 100%;
-  border: 0; background: transparent;
-  color: var(--on-ink);
-  text-align: left; cursor: pointer;
-  padding: 9px 10px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 6px 5px 10px;
   border-radius: 9px;
 }
 .sb-item:hover { background: var(--ink-2); }
 .sb-item.active { background: var(--ink-3); box-shadow: inset 3px 0 0 #8b6dff; }
-.sb-item-body { min-width: 0; flex: 1; }
+
+.sb-item-open {
+  min-width: 0; flex: 1;
+  display: flex; flex-direction: column; gap: 1px;
+  border: 0; background: transparent; color: var(--on-ink);
+  text-align: left; cursor: pointer; padding: 4px 0;
+}
 .sb-item-title {
   font-size: 13.5px; font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sb-item-meta { font-size: 11.5px; color: var(--on-ink-muted); margin-top: 1px; }
+.sb-item-meta { font-size: 11.5px; color: var(--on-ink-muted); }
 .sb-score {
   flex: none;
   font-variant-numeric: tabular-nums;
@@ -153,15 +155,40 @@ button { font-family: inherit; }
   border-radius: 999px;
   padding: 2px 8px;
 }
-.sb-del {
-  flex: none; opacity: 0;
-  border: 0; background: transparent; color: var(--on-ink-muted);
-  cursor: pointer; font-size: 14px; line-height: 1;
-  padding: 4px; border-radius: 6px;
-  transition: opacity .12s ease;
+
+/* rename input */
+.sb-rename {
+  flex: 1; width: 100%;
+  background: var(--ink); color: #fff;
+  border: 1px solid #5b6bff; border-radius: 7px;
+  padding: 6px 8px; font-size: 13.5px; outline: none;
 }
-.sb-item:hover .sb-del { opacity: 1; }
-.sb-del:hover { color: #ff7a7a; background: rgba(255,90,90,0.12); }
+
+/* ⋯ menu */
+.sb-menu-wrap { position: relative; flex: none; }
+.sb-kebab {
+  opacity: 0;
+  border: 0; background: transparent; color: var(--on-ink-muted);
+  cursor: pointer; font-size: 17px; line-height: 1;
+  padding: 4px 6px; border-radius: 6px;
+}
+.sb-item:hover .sb-kebab { opacity: 1; }
+.sb-kebab:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sb-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 30;
+  min-width: 132px;
+  background: #2c2f37; border: 1px solid #3c404a; border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  padding: 4px; display: flex; flex-direction: column;
+}
+.sb-menu button {
+  border: 0; background: transparent; color: var(--on-ink);
+  text-align: left; cursor: pointer;
+  padding: 7px 10px; border-radius: 6px; font-size: 13px;
+}
+.sb-menu button:hover { background: #383c45; }
+.sb-menu button.danger { color: #ff8a8a; }
+.sb-menu button.danger:hover { background: rgba(255,90,90,0.14); }
 
 /* storage shelf meter pinned to the bottom */
 .sb-storage {
