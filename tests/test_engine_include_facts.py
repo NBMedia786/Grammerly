@@ -13,7 +13,7 @@ def _specialist_json(pid, score):
     }) + "\nEND_JSON")
 
 
-def test_include_facts_false_runs_only_four_writing_categories(monkeypatch):
+def test_include_facts_false_runs_only_five_writing_categories(monkeypatch):
     seq = [_specialist_json(p, 8) for p in ("grammar", "spelling", "punctuation", "tense", "hooks")]
 
     class _LLM:
