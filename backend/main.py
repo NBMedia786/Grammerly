@@ -19,12 +19,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from utils1 import load_script_file, extract_review_json, PARAM_ORDER
 from review_engine_multi import run_review_multi
 from matching import build_spans_by_param, locate_quote, PARAM_COLORS
 from factcheck import run_fact_check
+import history as history_store
 
 # Document-highlight colors for fact-check verdicts.
 FACT_COLORS = {"incorrect": "#ef4444", "unverifiable": "#f59e0b", "correct": "#22c55e"}
@@ -51,33 +53,12 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
-    filename = file.filename or "uploaded"
-    suffix = os.path.splitext(filename)[1].lower()
-    if suffix not in ALLOWED_EXT:
-        raise HTTPException(status_code=400, detail="Please upload a .docx, .pdf, or .txt file.")
-
-    raw = await file.read()
-    tmp_path = None
+def _analyze_text(script_text: str, title: str) -> dict:
+    """Run the full AI review pipeline and return the response dict."""
+    # --- Run the AI review (Gemini calls via Vertex). Surface failures cleanly. ---
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(raw)
-            tmp_path = tmp.name
-        script_text = load_script_file(tmp_path)
-    finally:
-        if tmp_path:
-            try:
-                os.remove(tmp_path)
-            except OSError:
-                pass
-
-    if len((script_text or "").strip()) < 50:
-        raise HTTPException(status_code=422, detail="Extracted text looks too short. Check the file.")
-
-    # --- Run the AI review (8 Gemini calls via Vertex). Surface failures cleanly. ---
-    try:
-        review_text = run_review_multi(script_text=script_text, prompts_dir=PROMPTS_DIR, temperature=0.0)
+        review_text = run_review_multi(script_text=script_text, prompts_dir=PROMPTS_DIR,
+                                       temperature=0.0, include_facts=False)
     except EnvironmentError as e:
         raise HTTPException(status_code=500, detail=f"Configuration error: {e}")
     except Exception as e:
@@ -98,7 +79,8 @@ async def analyze(file: UploadFile = File(...)):
 
     per = (data.get("per_parameter") or {})
     aoi = {}
-    for param in PARAM_ORDER:
+    param_order = [p for p in PARAM_ORDER if p != "Facts"]
+    for param in param_order:
         blk = per.get(param) or {}
         for i, item in enumerate(blk.get("areas_of_improvement") or [], start=1):
             aid = f"{param.replace(' ', '_')}-AOI-{i}"
@@ -151,16 +133,15 @@ async def analyze(file: UploadFile = File(...)):
     param_colors = dict(PARAM_COLORS)
     param_colors["Fact Check"] = FACT_COLORS["incorrect"]
 
-    return {
+    response = {
         "script_text": script_text,
         "scores": data.get("scores", {}),
         "overall_rating": data.get("overall_rating", ""),
         "strengths": data.get("strengths", []),
         "weaknesses": data.get("weaknesses", []),
         "suggestions": data.get("suggestions", []),
-        "drop_off_risks": data.get("drop_off_risks", []),
-        "viral_quotient": data.get("viral_quotient", ""),
-        "param_order": PARAM_ORDER,
+        "summary": data.get("summary", ""),
+        "param_order": param_order,
         "param_colors": param_colors,
         "per_parameter": per_clean,
         "spans": spans,
@@ -171,3 +152,64 @@ async def analyze(file: UploadFile = File(...)):
             "error": fc.get("error"),
         },
     }
+
+    save = history_store.save_review(response, title)
+    response["saved"] = save["saved"]
+    response["save_error"] = save["reason"]
+    return response
+
+
+@app.post("/api/analyze")
+async def analyze(file: UploadFile = File(...)):
+    filename = file.filename or "uploaded"
+    suffix = os.path.splitext(filename)[1].lower()
+    if suffix not in ALLOWED_EXT:
+        raise HTTPException(status_code=400, detail="Please upload a .docx, .pdf, or .txt file.")
+    raw = await file.read()
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(raw); tmp_path = tmp.name
+        script_text = load_script_file(tmp_path)
+    finally:
+        if tmp_path:
+            try: os.remove(tmp_path)
+            except OSError: pass
+    if len((script_text or "").strip()) < 50:
+        raise HTTPException(status_code=422, detail="Extracted text looks too short. Check the file.")
+    return _analyze_text(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded")
+
+
+class TextIn(BaseModel):
+    text: str
+
+
+@app.post("/api/analyze-text")
+def analyze_text(body: TextIn):
+    script_text = (body.text or "").strip()
+    if len(script_text) < 50:
+        raise HTTPException(status_code=422, detail="Please paste at least 50 characters of text.")
+    return _analyze_text(script_text, "pasted-text")
+
+
+@app.get("/api/history")
+def get_history():
+    return history_store.list_reviews()
+
+
+@app.get("/api/history/{rid}")
+def get_history_item(rid: str):
+    rec = history_store.load_review(rid)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Review not found.")
+    return rec
+
+
+@app.delete("/api/history/{rid}")
+def delete_history_item(rid: str):
+    return history_store.delete_review(rid)
+
+
+@app.get("/api/storage")
+def get_storage():
+    return history_store.storage_usage()
