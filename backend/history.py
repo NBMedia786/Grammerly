@@ -7,14 +7,21 @@ import json
 import uuid
 import glob
 import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 _GB = 1024 ** 3
 _ID_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")  # safe ids only (no path separators)
+_REPO_ROOT = Path(__file__).resolve().parent.parent  # repo root (history.py lives in backend/)
 
 
 def _history_dir() -> str:
+    # A relative HISTORY_DIR is anchored to the repo root so saved history lands in the same
+    # place no matter which directory the server was launched from (mirrors main.py's PROMPTS_DIR
+    # / credentials handling). Set an absolute HISTORY_DIR in .env for a real VPS deploy.
     d = os.getenv("HISTORY_DIR", "Scriptmodel/outputs/_history")
+    if not os.path.isabs(d):
+        d = str(_REPO_ROOT / d)
     os.makedirs(d, exist_ok=True)
     return d
 
