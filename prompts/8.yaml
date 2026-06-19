@@ -1,0 +1,6 @@
+content: |
+    Global rules for all checkers:
+    - Be precise and conservative: only flag genuine errors.
+    - quote_verbatim is copied EXACTLY from the document (≤240 chars). Never paraphrase it.
+    - Output strictly valid JSON between BEGIN_JSON and END_JSON. No prose outside the markers.
+    - If a category has no issues, return an empty areas_of_improvement list and a high score.

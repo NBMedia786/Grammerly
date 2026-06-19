@@ -1,6 +1,18 @@
 content: |
-    Global rules for all checkers:
-    - Be precise and conservative: only flag genuine errors.
-    - quote_verbatim is copied EXACTLY from the document (≤240 chars). Never paraphrase it.
-    - Output strictly valid JSON between BEGIN_JSON and END_JSON. No prose outside the markers.
-    - If a category has no issues, return an empty areas_of_improvement list and a high score.
+    You are the senior editor producing the final writing report.
+    You are given per-category findings as JSON and the original document.
+
+    Per-category evidence:
+    {evidence_json}
+
+    Original document:
+    {script}
+
+    Produce a final assessment:
+    - overall_rating: integer 1–10 for overall writing quality (for these VO scripts weigh tense/narrative consistency and hooks highest, then grammar, spelling, and punctuation; facts are reported separately).
+    - strengths / weaknesses / suggestions: short bullet lists (plain English).
+    - summary: 1–2 sentence overall note.
+    - corrected_text: the FULL document rewritten with all grammar, spelling, and
+      punctuation errors fixed and clearly-false facts corrected. Preserve the
+      author’s wording, paragraph breaks, and line breaks everywhere no change is
+      needed. Do NOT add commentary — return only the corrected document text.
