@@ -51,14 +51,19 @@ function SuggestionCard({ item, color, decision, isActive, onSelect, onDecision 
       {item.why && <p className="why">{item.why}</p>}
 
       {item.sources && item.sources.length > 0 && (
-        <p className="sources">
-          Sources:{' '}
-          {item.sources.map((s, i) => (
-            <a key={i} href={s} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-              {hostOf(s)}
-            </a>
-          ))}
-        </p>
+        <div className="sources">
+          <span className="sources-label">Sources</span>
+          {item.sources.map((s, i) => {
+            const host = hostOf(s)
+            const label = host.includes('vertexaisearch') ? `Source ${i + 1}` : host
+            return (
+              <a
+                key={i} className="source-chip" href={s} target="_blank" rel="noreferrer"
+                title={host} onClick={(e) => e.stopPropagation()}
+              >↗ {label}</a>
+            )
+          })}
+        </div>
       )}
 
       <div className="card-actions">
