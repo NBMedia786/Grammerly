@@ -55,6 +55,7 @@ export default function App() {
 
   function onResult(data) {
     setResult(data); setDecisions({}); setSelectedParam(null); setActiveAid(null)
+    if (data && data.title) setFileName(data.title)  // history-loaded items carry a title
     setSaveWarning(data && data.saved === false)
     setView('review')
     getStorage().then(setStorage).catch(() => {})
@@ -94,6 +95,7 @@ export default function App() {
   function reset() {
     setResult(null); setView('upload'); setError(''); setFileName('')
     setDecisions({}); setSelectedParam(null); setActiveAid(null)
+    setSaveWarning(false); setPasteText('')
   }
 
   async function openHistory() {
