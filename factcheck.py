@@ -85,46 +85,34 @@ def _normalize(raw_claims: Any) -> List[Dict[str, Any]]:
     return out
 
 
-def _build_search_tool():
-    """Best-effort Google Search grounding tool across Vertex SDK versions."""
-    from vertexai.generative_models import Tool
-    try:
-        from vertexai.generative_models import grounding
-    except Exception:
-        return None
-    builders = [
-        lambda: Tool.from_google_search_retrieval(grounding.GoogleSearchRetrieval()),
-        lambda: Tool.from_google_search_retrieval(grounding.GoogleSearch()),
-    ]
-    for make in builders:
-        try:
-            return make()
-        except Exception:
-            continue
-    return None
+def _genai_client():
+    from google import genai
+    return genai.Client(vertexai=True, project=_PROJECT, location=_LOCATION)
 
 
 def _grounded_text(prompt: str) -> str:
-    import vertexai
-    from vertexai.generative_models import GenerativeModel
-    vertexai.init(project=_PROJECT, location=_LOCATION)
-    tool = _build_search_tool()
-    if tool is None:
-        raise RuntimeError("Google Search grounding tool unavailable")
-    model = GenerativeModel(_MODEL)
-    resp = model.generate_content(
-        prompt,
-        tools=[tool],
-        generation_config={"temperature": 0.0},
+    from google.genai import types
+    client = _genai_client()
+    resp = client.models.generate_content(
+        model=_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+            temperature=0.0,
+        ),
     )
     return getattr(resp, "text", "") or ""
 
 
 def _plain_text(prompt: str) -> str:
-    from langchain_google_vertexai import ChatVertexAI
-    llm = ChatVertexAI(model=_MODEL, temperature=0.0, project=_PROJECT, location=_LOCATION)
-    r = llm.invoke(prompt)
-    return getattr(r, "content", "") or ""
+    from google.genai import types
+    client = _genai_client()
+    resp = client.models.generate_content(
+        model=_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(temperature=0.0),
+    )
+    return getattr(resp, "text", "") or ""
 
 
 def run_fact_check(script_text: str) -> Dict[str, Any]:
