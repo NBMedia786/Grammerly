@@ -26,10 +26,13 @@ from utils1 import load_script_file, extract_review_json, PARAM_ORDER
 from review_engine_multi import run_review_multi
 from matching import build_spans_by_param, locate_quote, PARAM_COLORS
 from factcheck import run_fact_check
+from plagiarism import run_plagiarism_check
+from ai_detect import run_ai_detection
 import history as history_store
 
 # Document-highlight colors for fact-check verdicts.
 FACT_COLORS = {"incorrect": "#ef4444", "unverifiable": "#f59e0b", "correct": "#22c55e"}
+PLAGIARISM_COLOR = "#f97316"
 
 load_dotenv()
 
@@ -237,3 +240,50 @@ def delete_history_item(rid: str):
 @app.get("/api/storage")
 def get_storage():
     return history_store.storage_usage()
+
+
+class OriginalityIn(BaseModel):
+    text: str
+
+
+@app.post("/api/originality")
+def originality(body: OriginalityIn):
+    text = (body.text or "").strip()
+    if len(text) < 50:
+        raise HTTPException(status_code=422, detail="Need at least 50 characters to check.")
+
+    try:
+        ai = run_ai_detection(text)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI detection failed: {e}")
+    ai["disclaimer"] = ("Rough estimate — automated AI detection is unreliable. "
+                        "Treat this as a signal, not a verdict.")
+
+    try:
+        plag = run_plagiarism_check(text)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Plagiarism check failed: {e}")
+
+    spans = []
+    aoi = {}
+    for i, m in enumerate(plag.get("matches", []), start=1):
+        aid = f"PLAG-{i}"
+        rng = locate_quote(text, m.get("quote_verbatim", ""))
+        matched = bool(rng)
+        line = text[rng[0]:rng[1]] if rng else (m.get("quote_verbatim", "") or "")
+        aoi[aid] = {
+            "param": "Plagiarism", "kind": "plagiarism", "matched": matched,
+            "line": line, "issue": "Appears on the web" + (f" — {m['note']}" if m.get("note") else ""),
+            "fix": "", "why": "Best-effort verbatim web match. Paraphrasing is not detected — verify manually.",
+            "sources": m.get("sources", []),
+        }
+        if rng:
+            spans.append({"start": rng[0], "end": rng[1], "color": PLAGIARISM_COLOR,
+                          "aid": aid, "param": "Plagiarism"})
+
+    return {
+        "ai_detection": ai,
+        "plagiarism": {"web_grounded": plag.get("web_grounded", False), "count": plag.get("count", 0)},
+        "spans": spans,
+        "aoi": aoi,
+    }
