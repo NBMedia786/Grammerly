@@ -366,17 +366,25 @@ export default function App() {
               <div className="report-body"><ScorePanel result={result} /></div>
             </details>
 
-            {fc && factCount > 0 && (
-              <div className={`fc-banner ${fc.web_grounded ? 'ok' : 'warn'}`}>
-                {fc.web_grounded
-                  ? '✓ Facts verified against Google Search'
-                  : '⚠ Web grounding unavailable — checked with model knowledge only'}
-                {fc.counts && (
-                  <span className="fc-counts">
-                    {' · '}{fc.counts.incorrect || 0} wrong, {fc.counts.unverifiable || 0} unverifiable
-                  </span>
-                )}
-              </div>
+            {fc && (
+              fc.error ? (
+                <div className="fc-banner warn">
+                  ⚠ Fact check couldn’t run this time (server/grounding hiccup). Re-run to try again.
+                </div>
+              ) : factCount > 0 ? (
+                <div className={`fc-banner ${fc.web_grounded ? 'ok' : 'warn'}`}>
+                  {fc.web_grounded
+                    ? '✓ Facts checked against Google Search'
+                    : '⚠ Web grounding unavailable — checked with model knowledge only'}
+                  {fc.counts && (
+                    <span className="fc-counts">
+                      {' · '}{fc.counts.incorrect || 0} wrong, {fc.counts.unverifiable || 0} unverifiable
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="fc-banner ok">✓ Facts checked — nothing flagged</div>
+              )
             )}
 
             <div className="margin-title">

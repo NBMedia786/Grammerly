@@ -122,19 +122,28 @@ def _extract_grounding_sources(resp, resolve: bool = True):
 
 def grounded_generate_with_sources(prompt: str, temperature: float = 0.0):
     """Grounded Gemini call returning (text, [{title, uri}]) where sources come from the
-    grounding metadata (real domains + full working URLs). Falls back to
-    (ungrounded_text, []) if the grounded path is unavailable."""
+    grounding metadata (real domains + full working URLs). Retries once on a transient
+    error, then falls back to (ungrounded_text, []) so a hiccup never drops the check."""
+    import time
+    for attempt in range(2):
+        try:
+            from google.genai import types
+            client = _genai_client()
+            resp = client.models.generate_content(
+                model=_model_name(),
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=temperature,
+                ),
+            )
+            return (getattr(resp, "text", "") or ""), _extract_grounding_sources(resp)
+        except Exception:
+            if attempt == 0:
+                time.sleep(0.8)
+                continue
+    # both grounded attempts failed — try plain, else give an empty-but-valid result
     try:
-        from google.genai import types
-        client = _genai_client()
-        resp = client.models.generate_content(
-            model=_model_name(),
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                tools=[types.Tool(google_search=types.GoogleSearch())],
-                temperature=temperature,
-            ),
-        )
-        return (getattr(resp, "text", "") or ""), _extract_grounding_sources(resp)
-    except Exception:
         return _ungrounded_call(prompt, temperature), []
+    except Exception:
+        return "", []
