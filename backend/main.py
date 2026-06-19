@@ -134,7 +134,9 @@ def _analyze_text(script_text: str, title: str, on_progress=None) -> dict:
             "issue": c.get("claim", ""),
             "fix": c.get("correction", ""),   # drop-in correction -> "Apply" replaces the wrong fact
             "why": c.get("explanation", ""),
-            "sources": c.get("sources", []),
+            # Grounding gives one source list for the whole check (not per-claim), so show the
+            # real resolved sources on each card so every fact has links to verify against.
+            "sources": (fc.get("sources") or [])[:4],
         }
         # Highlight every located claim (color by verdict) so its card can always
         # scroll to and mark the matching text — otherwise "Correct" cards look orphaned.
@@ -350,7 +352,7 @@ def originality(body: OriginalityIn):
             "param": "Plagiarism", "kind": "plagiarism", "matched": matched,
             "line": line, "issue": "Appears on the web" + (f" — {m['note']}" if m.get("note") else ""),
             "fix": "", "why": "Best-effort verbatim web match. Paraphrasing is not detected — verify manually.",
-            "sources": m.get("sources", []),
+            "sources": (plag.get("sources") or [])[:4],
         }
         if rng:
             spans.append({"start": rng[0], "end": rng[1], "color": PLAGIARISM_COLOR,

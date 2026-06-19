@@ -54,12 +54,13 @@ function SuggestionCard({ item, color, decision, isActive, onSelect, onDecision 
         <div className="sources">
           <span className="sources-label">Sources</span>
           {item.sources.map((s, i) => {
-            const host = hostOf(s)
-            const label = host.includes('vertexaisearch') ? `Source ${i + 1}` : host
+            const uri = typeof s === 'string' ? s : (s.uri || '')
+            const title = typeof s === 'string' ? hostOf(s) : (s.title || hostOf(uri))
+            const label = (!title || title.includes('vertexaisearch')) ? `Source ${i + 1}` : title
             return (
               <a
-                key={i} className="source-chip" href={s} target="_blank" rel="noreferrer"
-                title={host} onClick={(e) => e.stopPropagation()}
+                key={i} className="source-chip" href={uri} target="_blank" rel="noreferrer"
+                title={uri} onClick={(e) => e.stopPropagation()}
               >↗ {label}</a>
             )
           })}

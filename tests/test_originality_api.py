@@ -11,8 +11,9 @@ def _app(monkeypatch, tmp_path):
                         lambda text: {"likelihood": 40, "band": "medium", "reasoning": "ok"})
     monkeypatch.setattr(main, "run_plagiarism_check",
                         lambda text: {"web_grounded": True, "count": 1,
+                                      "sources": [{"title": "example.com", "uri": "https://example.com/x"}],
                                       "matches": [{"quote_verbatim": "They was late to the meeting",
-                                                   "sources": ["https://example.com/x"], "note": "verbatim"}]})
+                                                   "sources": [], "note": "verbatim"}]})
     return main
 
 
@@ -28,7 +29,8 @@ def test_originality_shape(monkeypatch, tmp_path):
     assert any(sp["param"] == "Plagiarism" for sp in j["spans"])
     aid = j["spans"][0]["aid"]
     assert j["aoi"][aid]["kind"] == "plagiarism"
-    assert j["aoi"][aid]["sources"] == ["https://example.com/x"]
+    # card now carries the real resolved grounding sources (objects), capped
+    assert j["aoi"][aid]["sources"] == [{"title": "example.com", "uri": "https://example.com/x"}]
 
 
 def test_originality_short_text(monkeypatch, tmp_path):

@@ -34,15 +34,6 @@ export default function OriginalityPanel({ data }) {
           {plag.web_grounded ? 'Checked against Google Search. ' : 'Web search unavailable. '}
           Verbatim web matches only — paraphrasing isn't detected. Verify manually.
         </p>
-        {plag.sources && plag.sources.length > 0 && (
-          <div className="sources">
-            <span className="sources-label">Sources</span>
-            {plag.sources.map((s, i) => (
-              <a key={i} className="source-chip" href={s.uri} target="_blank" rel="noreferrer"
-                 title={s.uri}>↗ {s.title || `Source ${i + 1}`}</a>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
