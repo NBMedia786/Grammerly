@@ -219,11 +219,12 @@ button { font-family: inherit; }
 /* ---------- Empty / upload state ---------- */
 .empty-wrap {
   min-height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 48px 24px;
+  display: flex;
+  justify-content: center;       /* horizontally centered block */
+  align-items: flex-start;       /* anchored to the top, not floating */
+  padding: clamp(48px, 9vh, 96px) 40px 64px;
 }
-.empty-inner { width: min(620px, 100%); }
+.empty-inner { width: min(640px, 100%); }
 .empty-kicker {
   font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 10px;
