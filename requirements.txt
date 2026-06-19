@@ -1,0 +1,11 @@
+streamlit
+python-docx
+PyPDF2
+pyyaml
+python-dotenv
+pydantic>=2
+langchain
+langchain-google-vertexai
+boto3
+botocore
+

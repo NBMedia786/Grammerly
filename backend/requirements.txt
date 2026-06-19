@@ -1,0 +1,6 @@
+# Backend API deps. The AI/parsing deps are shared with the repo-root
+# requirements.txt (python-docx, PyPDF2, langchain, langchain-google-vertexai,
+# pydantic, python-dotenv, boto3, botocore). Install both files.
+fastapi
+uvicorn[standard]
+python-multipart
