@@ -136,8 +136,9 @@ def _analyze_text(script_text: str, title: str, on_progress=None) -> dict:
             "why": c.get("explanation", ""),
             "sources": c.get("sources", []),
         }
-        # Highlight only claims that need attention (wrong or unverifiable).
-        if rng and verdict in ("incorrect", "unverifiable"):
+        # Highlight every located claim (color by verdict) so its card can always
+        # scroll to and mark the matching text — otherwise "Correct" cards look orphaned.
+        if rng:
             spans.append({
                 "start": rng[0], "end": rng[1],
                 "color": FACT_COLORS.get(verdict, "#f59e0b"),
