@@ -218,6 +218,10 @@ def _stream_analysis(script_text: str, title: str) -> StreamingResponse:
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+class TextIn(BaseModel):
+    text: str
+
+
 @app.post("/api/analyze-stream")
 def analyze_stream(body: TextIn):
     text = (body.text or "").strip()
@@ -266,10 +270,6 @@ async def analyze(file: UploadFile = File(...)):
     if len((script_text or "").strip()) < 50:
         raise HTTPException(status_code=422, detail="Extracted text looks too short. Check the file.")
     return _analyze_text(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded")
-
-
-class TextIn(BaseModel):
-    text: str
 
 
 @app.post("/api/analyze-text")
