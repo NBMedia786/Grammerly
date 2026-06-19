@@ -25,6 +25,10 @@ STRICT_MATCH_ONLY = False
 
 _BRIDGE_CHARS = set("​‌‍⁠﻿\xa0­")
 
+# Strip ONLY leading list markers ("1.", "2)", "- ", "• ") — NOT meaningful leading numbers
+# like "19-year-old" (the old greedy r"^[•\-\d\.\)\s]+" ate the age off fact-check quotes).
+_LEAD_MARKER = re.compile(r"^\s*(?:[•*•]+\s*|\d{1,2}[.)]\s+|[-–—]\s+)+")
+
 
 def _normalize_keep_len(s: str) -> str:
     trans = {
@@ -267,7 +271,7 @@ def locate_quote(script_text: str, quote: str) -> Optional[Tuple[int, int]]:
     """Find a single quote's character span in script_text (same matcher as AOIs)."""
     if not quote:
         return None
-    cleaned = re.sub(r"^[•\-\d\.\)\s]+", "", sanitize_editor_text(quote)).strip()
+    cleaned = _LEAD_MARKER.sub("", sanitize_editor_text(quote)).strip()
     clean = _clean_quote_for_match(cleaned)
     if not clean:
         return None
@@ -300,7 +304,7 @@ def build_spans_by_param(
         for idx, item in enumerate(aois, start=1):
             raw_q = (item or {}).get("quote_verbatim", "") or ""
             q = sanitize_editor_text(raw_q)
-            clean = _clean_quote_for_match(re.sub(r"^[•\-\d\.\)\s]+", "", q).strip())
+            clean = _clean_quote_for_match(_LEAD_MARKER.sub("", q).strip())
             if not clean:
                 continue
             pos = find_span_smart(script_text, clean)
