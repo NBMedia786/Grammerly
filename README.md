@@ -138,8 +138,18 @@ The smoke test below requires a working Vertex AI environment (real service-acco
 
 ## Known limitations
 
-- **Google Search grounding unverified** — the live grounded Facts call (`facts_grounding._grounded_call`) has not been exercised end-to-end with real credentials. The fallback to ungrounded Gemini is in place and tested; however, fact-check citations depend on the grounded path working correctly in your Vertex environment.
 - **English only** — all prompts and the highlight engine are tuned for English text.
-- **Local dev machine** — this repository's development machine has a broken torch/CUDA install that crashes the `langchain_google_vertexai` import at the OS level (`0xc0000139`). The unit tests work around this via monkeypatching; running `streamlit run` locally on this machine is not possible. Use a clean Python environment (no broken torch) with real Vertex credentials.
 - **No per-issue apply button** — clicking a highlight shows the suggested fix in a popup but does not apply it in place. Use the full corrected-text download instead.
 - **No realtime checking** — the review runs on demand when you click **Run Review**, not as you type.
+
+## Notes on the Google SDKs
+
+- **Facts grounding uses `google-genai`.** Gemini 2.x requires the new `google_search` tool;
+  the older `vertexai` `google_search_retrieval` tool is rejected by `gemini-2.5-flash`.
+  `facts_grounding.py` therefore uses the `google-genai` client (`Client(vertexai=True, ...)`)
+  for both the grounded and ungrounded Facts calls. Verified live: WWII→1945, Titanic→1912.
+- **`transformers`/`torch` are disabled at import.** `langchain_google_vertexai` (used by the
+  four non-Facts specialists and the aggregator) pulls in `transformers`, which imports `torch`
+  by default and crashes on machines with a broken/GPU-only torch build. The app only needs
+  tokenizers, so `review_engine_multi.py` sets `USE_TORCH=0`/`USE_TF=0`/`USE_FLAX=0` **before**
+  importing langchain. No code change needed on your end.

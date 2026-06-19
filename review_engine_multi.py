@@ -10,6 +10,14 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, conint  # for structured aggregator output
 
+# langchain_google_vertexai pulls in `transformers`, which imports `torch` by default.
+# On machines with a broken/GPU-only torch build that crashes the import. This app only
+# needs tokenizers, so disable the heavy ML backends BEFORE the langchain import. (Must be
+# set here, not via .env — transformers reads these at import time, before load_dotenv runs.)
+os.environ.setdefault("USE_TORCH", "0")
+os.environ.setdefault("USE_TF", "0")
+os.environ.setdefault("USE_FLAX", "0")
+
 try:
     from langchain_google_vertexai import ChatVertexAI  # type: ignore[import]
 except Exception:  # pragma: no cover — missing/broken in some envs

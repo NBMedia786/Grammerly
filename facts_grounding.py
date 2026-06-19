@@ -22,36 +22,41 @@ def _location() -> str:
     return os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
 
 
-def _grounded_call(prompt: str, temperature: float) -> str:
-    """Vertex Gemini with Google Search grounding. Raises if the SDK path is unavailable."""
-    import vertexai
-    from vertexai.generative_models import GenerativeModel, Tool, grounding, GenerationConfig
+def _genai_client():
+    """Vertex-backed google-genai client (recommended SDK for Gemini 2.x grounding)."""
+    from google import genai
+    return genai.Client(vertexai=True, project=_project(), location=_location())
 
-    vertexai.init(project=_project(), location=_location())
-    tool = Tool.from_google_search_retrieval(grounding.GoogleSearchRetrieval())
-    model = GenerativeModel(_model_name())
-    resp = model.generate_content(
-        prompt,
-        tools=[tool],
-        generation_config=GenerationConfig(temperature=temperature),
+
+def _grounded_call(prompt: str, temperature: float) -> str:
+    """Gemini on Vertex with the Google Search tool (the `google_search` field that
+    Gemini 2.x requires — the older `google_search_retrieval` tool is rejected by 2.5)."""
+    from google.genai import types
+
+    client = _genai_client()
+    resp = client.models.generate_content(
+        model=_model_name(),
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+            temperature=temperature,
+        ),
     )
     return getattr(resp, "text", "") or ""
 
 
 def _ungrounded_call(prompt: str, temperature: float) -> str:
-    """Plain Vertex Gemini via langchain (same path as other specialists)."""
-    from langchain_google_vertexai import ChatVertexAI
+    """Plain Gemini on Vertex via google-genai (no search tool); used only if the
+    grounded call fails, so Facts never blocks the run."""
+    from google.genai import types
 
-    llm = ChatVertexAI(
+    client = _genai_client()
+    resp = client.models.generate_content(
         model=_model_name(),
-        temperature=temperature,
-        top_p=0.0,
-        top_k=1,
-        project=_project(),
-        location=_location(),
+        contents=prompt,
+        config=types.GenerateContentConfig(temperature=temperature),
     )
-    resp = llm.invoke(prompt)
-    return getattr(resp, "content", "") or ""
+    return getattr(resp, "text", "") or ""
 
 
 def grounded_generate(prompt: str, temperature: float = 0.0) -> str:
