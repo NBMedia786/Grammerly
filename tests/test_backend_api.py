@@ -10,7 +10,7 @@ def _load_app(monkeypatch, tmp_path):
     importlib.reload(main)
     # stub the heavy pipeline
     review = ("BEGIN_JSON\n" + json.dumps({
-        "scores": {"Grammar": 8, "Spelling": 9, "Punctuation": 7, "Style/Clarity": 10},
+        "scores": {"Tense/Narrative": 8, "Hooks": 7, "Grammar": 8, "Spelling": 9, "Punctuation": 7},
         "per_parameter": {"Grammar": {"areas_of_improvement": [
             {"quote_verbatim": "They was late", "issue": "x", "fix": "They were late", "why_this_helps": "y"}]}},
         "overall_rating": 8, "strengths": ["s"], "weaknesses": ["w"], "suggestions": ["g"],
@@ -28,7 +28,7 @@ def test_analyze_text_returns_writing_contract(monkeypatch, tmp_path):
     r = c.post("/api/analyze-text", json={"text": "They was late to the meeting. " * 3})
     assert r.status_code == 200
     j = r.json()
-    assert set(j["param_order"]) == {"Grammar", "Spelling", "Punctuation", "Style/Clarity"}
+    assert set(j["param_order"]) == {"Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation"}
     assert "viral_quotient" not in j and "drop_off_risks" not in j
     assert j["summary"] == "fine"
     assert j["saved"] is True

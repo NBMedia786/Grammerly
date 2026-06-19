@@ -18,10 +18,11 @@ from docx.table import Table
 
 # -------------------- UI order for parameters -------------------- #
 PARAM_ORDER: List[str] = [
+    "Tense/Narrative",
+    "Hooks",
     "Grammar",
     "Spelling",
     "Punctuation",
-    "Style/Clarity",
     "Facts",
 ]
 

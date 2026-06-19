@@ -14,10 +14,11 @@ from utils1 import PARAM_ORDER, sanitize_editor_text
 
 # ---------- Colors (per parameter) ----------
 PARAM_COLORS: Dict[str, str] = {
-    "Grammar":       "#ff6b6b",
-    "Spelling":      "#6b8cff",
-    "Punctuation":   "#eab308",
-    "Style/Clarity": "#a78bfa",
+    "Tense/Narrative": "#a78bfa",
+    "Hooks":           "#14b8a6",
+    "Grammar":         "#ff6b6b",
+    "Spelling":        "#6b8cff",
+    "Punctuation":     "#eab308",
 }
 
 STRICT_MATCH_ONLY = False

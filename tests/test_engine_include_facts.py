@@ -14,7 +14,7 @@ def _specialist_json(pid, score):
 
 
 def test_include_facts_false_runs_only_four_writing_categories(monkeypatch):
-    seq = [_specialist_json(p, 8) for p in ("grammar", "spelling", "punctuation", "style")]
+    seq = [_specialist_json(p, 8) for p in ("grammar", "spelling", "punctuation", "tense", "hooks")]
 
     class _LLM:
         def invoke(self, prompt): return _Resp(seq.pop(0))
@@ -39,9 +39,9 @@ def test_include_facts_false_runs_only_four_writing_categories(monkeypatch):
     # grounded_generate must NOT be called when include_facts=False
     def _boom(*a, **k): raise AssertionError("Facts specialist should not run")
     monkeypatch.setattr(eng, "grounded_generate", _boom)
-    monkeypatch.setattr(eng, "_load_prompt", lambda prefix, n: ("{evidence_json} {script}" if n == 6 else "{script}"))
+    monkeypatch.setattr(eng, "_load_prompt", lambda prefix, n: ("{evidence_json} {script}" if n == 7 else "{script}"))
 
     out = eng.run_review_multi("text", prompts_dir="x", temperature=0.0, include_facts=False)
     data = json.loads(out.split("BEGIN_JSON")[1].split("END_JSON")[0])
-    assert set(data["scores"].keys()) == {"Grammar", "Spelling", "Punctuation", "Style/Clarity"}
+    assert set(data["scores"].keys()) == {"Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks"}
     assert "Facts" not in data["per_parameter"]

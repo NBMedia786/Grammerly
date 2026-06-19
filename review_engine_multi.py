@@ -318,9 +318,10 @@ DISPLAY_BY_INDEX = {
     1: "Grammar",
     2: "Spelling",
     3: "Punctuation",
-    4: "Style/Clarity",
-    5: "Facts",
-    # 6 = aggregator, 7 = shared preamble
+    4: "Tense/Narrative",
+    5: "Hooks",
+    6: "Facts",
+    # 7 = aggregator, 8 = shared preamble
 }
 
 # -----------------------------------------------------------------------------#
@@ -373,7 +374,7 @@ def run_review_multi(
 
     # Shared preamble (7.yaml) if present
     try:
-        global_preamble = _load_prompt(prompts_dir, 7).strip()
+        global_preamble = _load_prompt(prompts_dir, 8).strip()
         if global_preamble:
             global_preamble += "\n\n"
     except FileNotFoundError:
@@ -382,7 +383,7 @@ def run_review_multi(
     scores: Dict[str, int] = {}
     per_parameter: Dict[str, Dict[str, Any]] = {}
 
-    last_specialist = 5 if include_facts else 4
+    last_specialist = 6 if include_facts else 5
     for i in range(1, last_specialist + 1):
         name = DISPLAY_BY_INDEX[i]
         tmpl = _load_prompt(prompts_dir, i)
@@ -407,7 +408,7 @@ def run_review_multi(
     evidence = {"scores": scores, "per_parameter": per_parameter}
     evidence_json = json.dumps(evidence, ensure_ascii=False)
 
-    tmpl6 = _load_prompt(prompts_dir, 6)
+    tmpl6 = _load_prompt(prompts_dir, 7)
     prompt6_body = _inject(tmpl6, evidence_json=evidence_json, script=script_text)
     prompt6 = f"{global_preamble}{prompt6_body}"
 
@@ -416,7 +417,7 @@ def run_review_multi(
         agg: AggregatorAll = llm_aggr.invoke(prompt6)
     except Exception as e:
         short = (str(e) or "unknown").strip()
-        raise RuntimeError(f"Aggregator failed on prompt 6. Error: {short}")
+        raise RuntimeError(f"Aggregator failed on prompt 7. Error: {short}")
 
     final_payload: Dict[str, Any] = {
         "scores": scores,
