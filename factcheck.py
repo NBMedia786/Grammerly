@@ -70,17 +70,15 @@ def _normalize(raw_claims: Any) -> List[Dict[str, Any]]:
         verdict = str(c.get("verdict") or "").strip().lower()
         if verdict not in _VALID:
             verdict = "unverifiable"
-        srcs = c.get("sources") or []
-        if isinstance(srcs, str):
-            srcs = [srcs]
-        srcs = [str(s).strip() for s in srcs if str(s).strip()][:3]
+        # Per-claim source URLs from the model text are unreliable (truncated -> 404).
+        # Real sources come from the grounding metadata at the response level instead.
         out.append({
             "quote_verbatim": q,
             "claim": str(c.get("claim") or "").strip(),
             "verdict": verdict,
             "correction": str(c.get("correction") or "").strip(),
             "explanation": str(c.get("explanation") or "").strip(),
-            "sources": srcs,
+            "sources": [],
         })
     return out
 
@@ -115,23 +113,25 @@ def _plain_text(prompt: str) -> str:
     return getattr(resp, "text", "") or ""
 
 
+def _grounded_with_sources(prompt: str):
+    """(text, [{title, uri}]) — grounded call with real citation sources from metadata."""
+    from facts_grounding import grounded_generate_with_sources
+    return grounded_generate_with_sources(prompt, temperature=0.0)
+
+
 def run_fact_check(script_text: str) -> Dict[str, Any]:
     """
-    Returns {"web_grounded": bool, "claims": [ ... ]}.
-    claims: {quote_verbatim, claim, verdict, correction, explanation, sources}
+    Returns {"web_grounded": bool, "claims": [...], "sources": [{title, uri}]}.
+    Sources are the web pages the grounded check consulted (real domains + working links).
     """
     prompt = _PROMPT.replace("{script}", script_text or "")
-    web_grounded = True
-    text = ""
+    sources = []
     try:
-        text = _grounded_text(prompt)
-    except Exception:
-        web_grounded = False
-        try:
-            text = _plain_text(prompt)
-        except Exception as e:
-            return {"web_grounded": False, "error": str(e), "claims": []}
+        text, sources = _grounded_with_sources(prompt)
+    except Exception as e:
+        return {"web_grounded": False, "error": str(e), "claims": [], "sources": []}
 
     data = extract_review_json(text)
     claims = _normalize((data or {}).get("claims") if isinstance(data, dict) else [])
-    return {"web_grounded": web_grounded, "claims": claims}
+    # If we got citation sources, the search grounding definitely ran.
+    return {"web_grounded": bool(sources), "claims": claims, "sources": sources}

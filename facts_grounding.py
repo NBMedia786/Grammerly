@@ -70,3 +70,45 @@ def grounded_generate(prompt: str, temperature: float = 0.0) -> str:
 def ungrounded_generate(prompt: str, temperature: float = 0.0) -> str:
     """Plain (no search) Gemini call — used by AI-content detection."""
     return _ungrounded_call(prompt, temperature)
+
+
+def _extract_grounding_sources(resp):
+    """Pull real citation sources from a grounded response's metadata:
+    [{title: '<domain>', uri: '<full redirect url>'}]. The metadata URIs are the
+    full, valid links (the model truncates them when echoing into text -> 404s)."""
+    out, seen = [], set()
+    try:
+        for cand in (getattr(resp, "candidates", None) or []):
+            gm = getattr(cand, "grounding_metadata", None)
+            for ch in (getattr(gm, "grounding_chunks", None) or []):
+                web = getattr(ch, "web", None)
+                if not web:
+                    continue
+                uri = getattr(web, "uri", None)
+                title = (getattr(web, "title", None) or "").strip()
+                if uri and uri not in seen:
+                    seen.add(uri)
+                    out.append({"title": title or "source", "uri": uri})
+    except Exception:
+        pass
+    return out[:8]
+
+
+def grounded_generate_with_sources(prompt: str, temperature: float = 0.0):
+    """Grounded Gemini call returning (text, [{title, uri}]) where sources come from the
+    grounding metadata (real domains + full working URLs). Falls back to
+    (ungrounded_text, []) if the grounded path is unavailable."""
+    try:
+        from google.genai import types
+        client = _genai_client()
+        resp = client.models.generate_content(
+            model=_model_name(),
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=temperature,
+            ),
+        )
+        return (getattr(resp, "text", "") or ""), _extract_grounding_sources(resp)
+    except Exception:
+        return _ungrounded_call(prompt, temperature), []

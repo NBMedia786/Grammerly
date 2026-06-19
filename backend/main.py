@@ -170,6 +170,7 @@ def _analyze_text(script_text: str, title: str, on_progress=None) -> dict:
             "web_grounded": fc.get("web_grounded", False),
             "counts": fact_counts,
             "error": fc.get("error"),
+            "sources": fc.get("sources", []),
         },
     }
 
@@ -356,7 +357,8 @@ def originality(body: OriginalityIn):
 
     return {
         "ai_detection": ai,
-        "plagiarism": {"web_grounded": plag.get("web_grounded", False), "count": plag.get("count", 0)},
+        "plagiarism": {"web_grounded": plag.get("web_grounded", False), "count": plag.get("count", 0),
+                       "sources": plag.get("sources", [])},
         "spans": spans,
         "aoi": aoi,
     }

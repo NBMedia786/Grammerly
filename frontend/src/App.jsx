@@ -379,6 +379,16 @@ export default function App() {
               </div>
             )}
 
+            {fc && fc.sources && fc.sources.length > 0 && (
+              <div className="sources web-sources">
+                <span className="sources-label">Web sources</span>
+                {fc.sources.map((s, i) => (
+                  <a key={i} className="source-chip" href={s.uri} target="_blank" rel="noreferrer"
+                     title={s.uri}>↗ {s.title || `Source ${i + 1}`}</a>
+                ))}
+              </div>
+            )}
+
             <div className="margin-title">
               {selectedParam ? selectedParam : 'All suggestions'} · {visibleItems.length}
             </div>

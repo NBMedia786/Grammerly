@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from facts_grounding import grounded_generate
+from facts_grounding import grounded_generate, grounded_generate_with_sources
 from utils1 import extract_review_json
 
 _PROMPT = """You are a plagiarism checker with access to Google Search.
@@ -34,6 +34,11 @@ def _grounded(prompt: str) -> str:
     return grounded_generate(prompt, temperature=0.0)
 
 
+def _grounded_src(prompt: str):
+    """(text, [{title, uri}]) — grounded call with real citation sources from metadata."""
+    return grounded_generate_with_sources(prompt, temperature=0.0)
+
+
 def _normalize(raw: Any) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     if not isinstance(raw, list):
@@ -44,21 +49,18 @@ def _normalize(raw: Any) -> List[Dict[str, Any]]:
         q = str(m.get("quote_verbatim") or "").strip()
         if not q:
             continue
-        srcs = m.get("sources") or []
-        if isinstance(srcs, str):
-            srcs = [srcs]
-        srcs = [str(s).strip() for s in srcs if str(s).strip()][:3]
-        out.append({"quote_verbatim": q, "sources": srcs, "note": str(m.get("note") or "").strip()})
+        # Per-match model URLs are unreliable; real sources come from grounding metadata.
+        out.append({"quote_verbatim": q, "sources": [], "note": str(m.get("note") or "").strip()})
     return out
 
 
 def run_plagiarism_check(text: str) -> Dict[str, Any]:
     prompt = _PROMPT.replace("{script}", text or "")
-    web_grounded = True
+    sources = []
     try:
-        raw_text = _grounded(prompt)
+        raw_text, sources = _grounded_src(prompt)
     except Exception:
-        return {"web_grounded": False, "matches": [], "count": 0}
+        return {"web_grounded": False, "matches": [], "count": 0, "sources": []}
     data = extract_review_json(raw_text)
     matches = _normalize((data or {}).get("matches") if isinstance(data, dict) else [])
-    return {"web_grounded": web_grounded, "matches": matches, "count": len(matches)}
+    return {"web_grounded": bool(sources), "matches": matches, "count": len(matches), "sources": sources}
