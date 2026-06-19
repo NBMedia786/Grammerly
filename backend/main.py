@@ -33,9 +33,20 @@ FACT_COLORS = {"incorrect": "#ef4444", "unverifiable": "#f59e0b", "correct": "#2
 
 load_dotenv()
 
-# Local "prompts" dir by default; set PROMPTS_DIR=Scriptmodel/prompts to use S3.
-PROMPTS_DIR = os.getenv("PROMPTS_DIR", "prompts")
+# Default to the repo-root prompts/ folder (absolute, so it resolves no matter what
+# directory uvicorn is launched from). Set PROMPTS_DIR=Scriptmodel/prompts to load from S3.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+PROMPTS_DIR = os.getenv("PROMPTS_DIR", str(_REPO_ROOT / "prompts"))
 ALLOWED_EXT = {".docx", ".pdf", ".txt"}
+
+# A relative GOOGLE_APPLICATION_CREDENTIALS in .env (e.g. ./credentials/key.json) is meant
+# relative to the repo root; resolve it to an absolute path so Vertex auth works regardless
+# of which directory uvicorn is launched from.
+_cred = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if _cred and not os.path.isabs(_cred):
+    _cred_abs = (_REPO_ROOT / _cred).resolve()
+    if _cred_abs.exists():
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(_cred_abs)
 
 app = FastAPI(title="Writing Assistant API", version="1.0.0")
 
