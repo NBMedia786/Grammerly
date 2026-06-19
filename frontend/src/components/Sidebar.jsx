@@ -10,7 +10,7 @@ function shortDate(iso) {
   return `${months[+m[2] - 1]} ${+m[3]}, ${m[4]}:${m[5]}`
 }
 
-export default function Sidebar({ items, usage, activeId, onNew, onOpen, onDelete, onRename }) {
+export default function Sidebar({ open, items, usage, activeId, onNew, onOpen, onDelete, onRename }) {
   const [q, setQ] = useState('')
   const [menuFor, setMenuFor] = useState(null)   // id whose ⋯ menu is open
   const [renameFor, setRenameFor] = useState(null) // id being renamed
@@ -47,7 +47,7 @@ export default function Sidebar({ items, usage, activeId, onNew, onOpen, onDelet
   const meterCls = pct >= 90 ? 'danger' : pct >= 70 ? 'warn' : ''
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="sb-brand"><span className="dot" /> Writing Assistant</div>
 
       <button className="sb-new" onClick={onNew}><span aria-hidden>+</span> New review</button>

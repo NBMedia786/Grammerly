@@ -22,6 +22,7 @@ export default function App() {
   const [historyItems, setHistoryItems] = useState([])
   const [storage, setStorage] = useState(null)
   const [saveWarning, setSaveWarning] = useState(false)
+  const [navOpen, setNavOpen] = useState(false) // mobile sidebar drawer
 
   const fileInput = useRef(null)
 
@@ -337,15 +338,23 @@ export default function App() {
   return (
     <div className="shell">
       <Sidebar
+        open={navOpen}
         items={historyItems}
         usage={storage}
         activeId={result?.id || null}
-        onNew={reset}
-        onOpen={openHistoryItem}
+        onNew={() => { reset(); setNavOpen(false) }}
+        onOpen={(id) => { openHistoryItem(id); setNavOpen(false) }}
         onDelete={removeHistoryItem}
         onRename={renameItem}
       />
+      <div className={`scrim ${navOpen ? 'show' : ''}`} onClick={() => setNavOpen(false)} />
       <main className="main">
+        <div className="mobile-bar">
+          <button className="hamburger" aria-label="Open menu" onClick={() => setNavOpen(true)}>
+            <span /><span /><span />
+          </button>
+          <span className="mb-brand"><span className="dot" /> Writing Assistant</span>
+        </div>
         <MainContent />
       </main>
     </div>
