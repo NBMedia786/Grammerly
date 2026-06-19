@@ -357,6 +357,7 @@ def run_review_multi(
     script_text: str,
     prompts_dir: str = "Scriptmodel/prompts",
     temperature: float = 0.0,
+    include_facts: bool = True,
     include_commentary: bool = False,  # kept for API parity; ignored
 ) -> str:
     """
@@ -381,7 +382,8 @@ def run_review_multi(
     scores: Dict[str, int] = {}
     per_parameter: Dict[str, Dict[str, Any]] = {}
 
-    for i in range(1, 5 + 1):
+    last_specialist = 5 if include_facts else 4
+    for i in range(1, last_specialist + 1):
         name = DISPLAY_BY_INDEX[i]
         tmpl = _load_prompt(prompts_dir, i)
         prompt_body = _inject(tmpl, script=script_text)
