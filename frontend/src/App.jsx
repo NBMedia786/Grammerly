@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   analyzeFile, analyzeText, getHistory, getHistoryItem, deleteHistoryItem, renameHistoryItem, getStorage,
+  checkOriginality,
 } from './api.js'
 import { buildEditedText, copyToClipboard } from './highlight.js'
 import Sidebar from './components/Sidebar.jsx'
 import ScriptView from './components/ScriptView.jsx'
 import SuggestionList from './components/SuggestionList.jsx'
 import ScorePanel from './components/ScorePanel.jsx'
+import OriginalityPanel from './components/OriginalityPanel.jsx'
 
 export default function App() {
   const [view, setView] = useState('upload') // upload | loading | review | error
@@ -23,6 +25,7 @@ export default function App() {
   const [storage, setStorage] = useState(null)
   const [saveWarning, setSaveWarning] = useState(false)
   const [navOpen, setNavOpen] = useState(false) // mobile sidebar drawer
+  const [origLoading, setOrigLoading] = useState(false)
 
   const fileInput = useRef(null)
 
@@ -128,6 +131,25 @@ export default function App() {
       setHistoryItems(await getHistory())
       if (result && result.id === id) setFileName(title)
     } catch (_) { /* ignore */ }
+  }
+
+  async function onCheckOriginality() {
+    if (!result || origLoading) return
+    setOrigLoading(true)
+    try {
+      const o = await checkOriginality(result.script_text)
+      setResult((prev) => ({
+        ...prev,
+        spans: [...prev.spans, ...(o.spans || [])],
+        aoi: { ...prev.aoi, ...(o.aoi || {}) },
+        param_colors: { ...prev.param_colors, Plagiarism: '#f97316' },
+        originality: { ai_detection: o.ai_detection, plagiarism: o.plagiarism },
+      }))
+    } catch (e) {
+      window.alert(e.message || 'Originality check failed.')
+    } finally {
+      setOrigLoading(false)
+    }
   }
 
   async function copyEdited() {
@@ -276,6 +298,11 @@ export default function App() {
             <span className="rev-counts">
               {counts.open} open · <span className="ok">{counts.applied} applied</span>
             </span>
+            {!result.originality && (
+              <button className="btn" onClick={onCheckOriginality} disabled={origLoading}>
+                {origLoading ? 'Checking…' : 'Check originality'}
+              </button>
+            )}
             <button className="btn" onClick={copyEdited}>Copy edited</button>
             <button className="btn" onClick={downloadEdited}>Download</button>
           </div>
@@ -300,6 +327,7 @@ export default function App() {
           </div>
 
           <aside className="margin-col">
+            {result.originality && <OriginalityPanel data={result.originality} />}
             <details className="report">
               <summary>Report <span aria-hidden>▾</span></summary>
               <div className="report-body"><ScorePanel result={result} /></div>

@@ -43,3 +43,10 @@ export async function renameHistoryItem(id, title) {
   }))
 }
 export async function getStorage() { return _json(await fetch('/api/storage')) }
+
+export async function checkOriginality(text) {
+  return _json(await fetch('/api/originality', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  }))
+}

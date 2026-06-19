@@ -50,7 +50,7 @@ function SuggestionCard({ item, color, decision, isActive, onSelect, onDecision 
       {item.fix && <p className="fix"><strong>{isFact ? 'Correct:' : 'Fix:'}</strong> {item.fix}</p>}
       {item.why && <p className="why">{item.why}</p>}
 
-      {isFact && item.sources && item.sources.length > 0 && (
+      {item.sources && item.sources.length > 0 && (
         <p className="sources">
           Sources:{' '}
           {item.sources.map((s, i) => (
