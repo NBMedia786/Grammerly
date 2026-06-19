@@ -64,12 +64,20 @@ def _iter_block_items(document: Document):
         elif isinstance(child, CT_Tbl):
             yield Table(child, document)
 
+_W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
 def _paragraph_text_with_breaks(p: Paragraph) -> str:
+    # Walk the paragraph element directly instead of p.runs, so we also capture text
+    # inside <w:hyperlink>, fields, and smart-tags — python-docx's .runs skips those,
+    # which silently drops links/headers (e.g. a Google Drive URL) from the script.
     parts: List[str] = []
-    for run in p.runs:
-        if run.text:
-            parts.append(run.text)
-        for _ in run._r.xpath(".//w:br"):
+    for node in p._p.iter():
+        tag = node.tag
+        if tag == _W_NS + "t":
+            parts.append(node.text or "")
+        elif tag == _W_NS + "tab":
+            parts.append("\t")
+        elif tag == _W_NS + "br" or tag == _W_NS + "cr":
             parts.append("\n")
     txt = "".join(parts)
     txt = re.sub(r'\n{3,}', '\n\n', txt)
