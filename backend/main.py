@@ -9,9 +9,12 @@
 
 from __future__ import annotations
 
+import json
 import os
+import queue
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 # Make the repo-root modules (utils1, review_engine_multi) importable.
@@ -19,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -67,12 +71,12 @@ def health():
     return {"status": "ok"}
 
 
-def _analyze_text(script_text: str, title: str) -> dict:
+def _analyze_text(script_text: str, title: str, on_progress=None) -> dict:
     """Run the full AI review pipeline and return the response dict."""
     # --- Run the AI review (Gemini calls via Vertex). Surface failures cleanly. ---
     try:
         review_text = run_review_multi(script_text=script_text, prompts_dir=PROMPTS_DIR,
-                                       temperature=0.0, include_facts=False)
+                                       temperature=0.0, include_facts=False, on_progress=on_progress)
     except EnvironmentError as e:
         raise HTTPException(status_code=500, detail=f"Configuration error: {e}")
     except Exception as e:
@@ -110,6 +114,8 @@ def _analyze_text(script_text: str, title: str) -> dict:
             }
 
     # --- Fact check: verify claims (dates/names/events/stats) against the web ---
+    if on_progress:
+        on_progress("Fact-check")
     fc = run_fact_check(script_text)
     fact_counts = {"incorrect": 0, "unverifiable": 0, "correct": 0}
     for i, c in enumerate(fc.get("claims", []), start=1):
@@ -172,6 +178,73 @@ def _analyze_text(script_text: str, title: str) -> dict:
     response["save_error"] = save["reason"]
     response["id"] = save["id"]  # history id of this run (None if storage full) — lets the UI highlight it
     return response
+
+
+STREAM_STAGES = ["Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Overall", "Fact-check"]
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+def _stream_analysis(script_text: str, title: str) -> StreamingResponse:
+    q: "queue.Queue" = queue.Queue()
+
+    def on_progress(stage):
+        q.put(("progress", {"stage": stage}))
+
+    def worker():
+        try:
+            res = _analyze_text(script_text, title, on_progress=on_progress)
+            q.put(("result", res))
+        except HTTPException as he:
+            q.put(("error", {"detail": str(he.detail)}))
+        except Exception as e:  # pragma: no cover
+            q.put(("error", {"detail": str(e)}))
+        finally:
+            q.put(("__done__", None))
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def gen():
+        yield _sse("stages", {"stages": STREAM_STAGES})
+        while True:
+            kind, payload = q.get()
+            if kind == "__done__":
+                break
+            yield _sse(kind, payload)
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/analyze-stream")
+def analyze_stream(body: TextIn):
+    text = (body.text or "").strip()
+    if len(text) < 50:
+        raise HTTPException(status_code=422, detail="Please paste at least 50 characters of text.")
+    return _stream_analysis(text, "pasted-text")
+
+
+@app.post("/api/analyze-file-stream")
+async def analyze_file_stream(file: UploadFile = File(...)):
+    filename = file.filename or "uploaded"
+    suffix = os.path.splitext(filename)[1].lower()
+    if suffix not in ALLOWED_EXT:
+        raise HTTPException(status_code=400, detail="Please upload a .docx, .pdf, or .txt file.")
+    raw = await file.read()
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(raw); tmp_path = tmp.name
+        script_text = load_script_file(tmp_path)
+    finally:
+        if tmp_path:
+            try: os.remove(tmp_path)
+            except OSError: pass
+    if len((script_text or "").strip()) < 50:
+        raise HTTPException(status_code=422, detail="Extracted text looks too short. Check the file.")
+    return _stream_analysis(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded")
 
 
 @app.post("/api/analyze")
