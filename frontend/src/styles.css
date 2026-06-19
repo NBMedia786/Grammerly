@@ -221,8 +221,8 @@ button { font-family: inherit; }
   min-height: 100%;
   display: flex;
   justify-content: center;       /* horizontally centered block */
-  align-items: flex-start;       /* anchored to the top, not floating */
-  padding: clamp(48px, 9vh, 96px) 40px 64px;
+  align-items: flex-start;       /* anchored to the top */
+  padding: clamp(40px, 7vh, 72px) 40px 64px;
 }
 .empty-inner { width: min(640px, 100%); }
 .empty-kicker {
