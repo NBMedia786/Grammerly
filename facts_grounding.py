@@ -72,10 +72,26 @@ def ungrounded_generate(prompt: str, temperature: float = 0.0) -> str:
     return _ungrounded_call(prompt, temperature)
 
 
-def _extract_grounding_sources(resp):
+def resolve_url(uri: str, timeout: float = 5.0) -> str:
+    """Follow a grounding-redirect URL to its real final destination (e.g.
+    en.wikipedia.org/...). Redirect links expire; the resolved URL is permanent so
+    saved-history links keep working. Returns the original uri on any failure."""
+    if not uri or "vertexaisearch" not in uri:
+        return uri or ""
+    try:
+        import requests
+        r = requests.get(uri, allow_redirects=True, timeout=timeout, stream=True)
+        final = r.url or uri
+        r.close()
+        return final
+    except Exception:
+        return uri
+
+
+def _extract_grounding_sources(resp, resolve: bool = True):
     """Pull real citation sources from a grounded response's metadata:
-    [{title: '<domain>', uri: '<full redirect url>'}]. The metadata URIs are the
-    full, valid links (the model truncates them when echoing into text -> 404s)."""
+    [{title: '<domain>', uri: '<final url>'}]. The metadata URIs are full redirect links;
+    we resolve them to permanent destinations so they don't 404 later."""
     out, seen = [], set()
     try:
         for cand in (getattr(resp, "candidates", None) or []):
@@ -91,7 +107,17 @@ def _extract_grounding_sources(resp):
                     out.append({"title": title or "source", "uri": uri})
     except Exception:
         pass
-    return out[:8]
+    out = out[:8]
+    if resolve and out:
+        try:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=8) as ex:
+                finals = list(ex.map(lambda s: resolve_url(s["uri"]), out))
+            for s, f in zip(out, finals):
+                s["uri"] = f
+        except Exception:
+            pass
+    return out
 
 
 def grounded_generate_with_sources(prompt: str, temperature: float = 0.0):
