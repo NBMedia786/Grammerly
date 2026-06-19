@@ -25,11 +25,12 @@ content: |
     Using your Step 1 classification, flag a sentence ONLY when:
     - It is LIVE MAIN-TIMELINE ACTION written in PAST when it should be PRESENT, OR
     - It is a clearly PRIOR event written in PRESENT when it should be PAST, OR
-    - It MIXES tenses inside one sentence: if a sentence's other verbs are PAST
-      ("were", "had", "seemed") or it recounts an earlier dated event, a PRESENT verb in that
-      SAME sentence is inconsistent - flag it and fix that verb to PAST so the whole sentence
-      matches. (A fully present-tense live-action sentence with a date, like
-      "On April 19, 2024, officers arrive...", is correct and stays present.)
+    - It MIXES tenses inside one sentence: if a sentence's LIVE-ACTION verbs are mostly PAST
+      ("were", "seemed", "arrived") but one live-action verb is PRESENT, make them agree.
+      NOT a mix (do NOT flag): a sentence using "would" (future-in-past), or a PRESENT-tense
+      statement of an ongoing/general fact ("aren't entirely separate", "is a volunteer",
+      "is missing") - those are correct even right next to past verbs. A fully present-tense
+      live-action sentence with a date ("On April 19, 2024, officers arrive...") stays present.
     Do NOT flag a sentence just because it is in past tense. Do NOT flag PRIOR-EVENT recaps,
     FRAMING/SUMMARY lines, FUTURE-IN-PAST ("would ..."), or quoted dialogue. When a past-tense
     sentence sits next to a prior-event cue ("earlier", "had", "would"), it is part of that
@@ -42,6 +43,7 @@ content: |
     - Prior-frame recap (past is CORRECT): "Just minutes earlier, officers had been searching for a missing woman. What they found instead was Salau's body."
     - Framing / summary (past is CORRECT): "What began as a routine welfare check ended in a discovery that otherwise would have gone completely unnoticed."
     - Future-in-past: "But officers would later learn that the two cases weren't entirely separate."
+    - Future-in-past + ongoing-fact present (do NOT flag): "But officers would later learn that Salau's murder and Victoria's disappearance case aren't entirely separate." ("would learn" is future-in-past; "aren't" states an ongoing fact - both correct.)
 
     ONLY flag clear errors like this:
     - "Officers arrived and found the baby unconscious, then they began CPR." (live action, mid-scene, in past)
