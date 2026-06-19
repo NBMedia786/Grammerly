@@ -1,5 +1,12 @@
 content: |
     Global rules for all checkers:
+    - Use AMERICAN (US) ENGLISH throughout. Treat British/Commonwealth conventions as errors:
+      * Spelling: prefer US forms (color not colour, realize not realise, defense not defence,
+        traveling not travelling, center not centre, organize, analyze, gray, toward, canceled).
+      * Punctuation: US style — commas and periods go INSIDE quotation marks ("..."); use double
+        quotation marks as primary; serial/Oxford comma is fine.
+      * Vocabulary/usage: US usage where it differs (e.g. "gotten", "math", "apartment").
+      When you flag one of these, fix it to the US form.
     - Be precise and conservative: only flag genuine errors.
     - quote_verbatim is copied EXACTLY from the document (≤240 chars). Never paraphrase it.
     - Output strictly valid JSON between BEGIN_JSON and END_JSON. No prose outside the markers.
