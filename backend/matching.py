@@ -14,13 +14,10 @@ from utils1 import PARAM_ORDER, sanitize_editor_text
 
 # ---------- Colors (per parameter) ----------
 PARAM_COLORS: Dict[str, str] = {
-    "Suspense Building":              "#ff6b6b",
-    "Language/Tone":                  "#6b8cff",
-    "Intro + Main Hook/Cliffhanger":  "#ffb86b",
-    "Story Structure + Flow":         "#a78bfa",
-    "Pacing":                         "#f43f5e",
-    "Mini-Hooks (30–60s)":            "#eab308",
-    "Outro (Ending)":                 "#8b5cf6",
+    "Grammar":       "#ff6b6b",
+    "Spelling":      "#6b8cff",
+    "Punctuation":   "#eab308",
+    "Style/Clarity": "#a78bfa",
 }
 
 STRICT_MATCH_ONLY = False
@@ -271,7 +268,7 @@ def locate_quote(script_text: str, quote: str) -> Optional[Tuple[int, int]]:
         return None
     cleaned = re.sub(r"^[•\-\d\.\)\s]+", "", sanitize_editor_text(quote)).strip()
     clean = _clean_quote_for_match(cleaned)
-    if not clean or _is_heading_like(clean):
+    if not clean:
         return None
     pos = find_span_smart(script_text, clean)
     if not pos:
@@ -305,17 +302,11 @@ def build_spans_by_param(
             clean = _clean_quote_for_match(re.sub(r"^[•\-\d\.\)\s]+", "", q).strip())
             if not clean:
                 continue
-            if _is_heading_like(clean):
-                continue
             pos = find_span_smart(script_text, clean)
             if not pos:
                 continue
             pos = _tighten_to_quote(script_text, pos, raw_q)
             s, e = pos
-            if heading_ranges and _overlaps_any(s, e, heading_ranges):
-                continue
-            if _is_heading_context(script_text, s, e):
-                continue
             aid = f"{p.replace(' ', '_')}-AOI-{idx}"
             spans_map[p].append((s, e, color, aid))
             aoi_match_ranges[aid] = (s, e)
