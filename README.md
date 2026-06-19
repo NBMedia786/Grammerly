@@ -1,18 +1,26 @@
 # Writing Assistant
 
-A Grammarly-style writing assistant. Upload or paste text and it checks **grammar,
-spelling, punctuation, style/clarity**, and **real-world facts** (dates, names, events —
-verified live against Google Search). Issues appear as inline highlights and as a sidebar
-of suggestion cards with **Apply / Copy / Dismiss**; applying a fix edits the script
-inline, and you can copy or download the edited result. Every analysis is saved to a
-**review history** on the server, with a 50 GB storage budget and a permanent delete.
+A proofreading assistant for true-crime VO scripts that also does Grammarly-style writing
+checks. Upload or paste a script and it checks, in the proofreaders' order:
+
+1. **Tense/Narrative** — the main story timeline must be in **present tense** for immediacy;
+   **past tense is allowed only for events that happened before the main timeline** (prior
+   incidents, backstory). It flags both directions and rewrites to the correct tense.
+2. **Hooks** — the intro hook and the mini-cliffhangers between sections.
+3. **Grammar, Spelling, Punctuation** — Grammarly-style mechanics.
+4. **Facts** — names, dates, places, ages, times, verified live against Google Search.
+
+Issues appear as inline highlights and as a sidebar of suggestion cards with **Apply /
+Copy / Dismiss**; applying a fix edits the script inline, and you can copy or download the
+edited result. Every analysis is saved to a **review history** on the server, with a 50 GB
+storage budget and a permanent delete.
 
 ## Architecture
 
 ```
 React (Vite) SPA  ──/api/*──▶  FastAPI (backend/main.py)
                                  ├─ utils1.py              file parsing + JSON extraction
-                                 ├─ review_engine_multi    Gemini on Vertex AI — 4 writing
+                                 ├─ review_engine_multi    Gemini on Vertex AI — 5 writing
                                  │                          categories (include_facts=False)
                                  ├─ backend/matching.py    quote → character-span matcher
                                  ├─ factcheck.py           web-grounded facts
@@ -20,9 +28,9 @@ React (Vite) SPA  ──/api/*──▶  FastAPI (backend/main.py)
                                  └─ backend/history.py     VPS-disk review history + quota
 ```
 
-The four writing categories are **Grammar, Spelling, Punctuation, Style/Clarity**. Facts
-are handled by the dedicated `factcheck.py` (red/amber/green verdicts + source links), so
-the engine's own "Facts" pass is skipped via `include_facts=False`.
+The five writing categories are **Tense/Narrative, Hooks, Grammar, Spelling, Punctuation**.
+Facts are handled by the dedicated `factcheck.py` (red/amber/green verdicts + source links),
+so the engine's own "Facts" pass is skipped via `include_facts=False`.
 
 ## Setup
 
@@ -101,11 +109,17 @@ Google Search tool — no extra API key required.
 With both servers running and Vertex credentials configured:
 
 1. Open http://localhost:5173 → **Paste text** and enter:
-   `They was late too the meetng. World War II ended in 1946.`
+   `On April 19, 2024, officers arrive at the daycare. Officers arrived and found the baby
+   unresponsive. Earlier that morning, the babysitter had picked up the baby. The officers
+   then went home for the day. World War II ended in 1946.`
 2. Click **Analyze text**. Expect:
-   - 4 category pills (Grammar / Spelling / Punctuation / Style) with counts, plus a 🔎 **Fact Check** pill.
-   - Inline highlights on "They was" and "meetng"; clicking a card's **Apply** edits the text inline.
-   - Fact Check flags "ended in 1946" → **1945** with a source link.
+   - 5 category pills (Tense/Narrative / Hooks / Grammar / Spelling / Punctuation) with
+     counts, plus a 🔎 **Fact Check** pill.
+   - **Tense/Narrative** flags "Officers arrived and found…" → "Officers arrive and find…"
+     and "went home" → "go home", but does **not** flag "had picked up" (a prior event).
+   - **Hooks** flags the flat ending "The officers then went home for the day."
+   - **Fact Check** flags "ended in 1946" → **1945** with a source link.
+   - Clicking a card's **Apply** edits the text inline.
 3. Open **📁 History** → the run is listed; the storage bar shows usage.
 4. Click **Delete** → the review is permanently removed (list empties, bar drops).
 

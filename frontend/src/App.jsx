@@ -158,7 +158,7 @@ export default function App() {
           {view === 'loading' && (
             <div className="loadcard">
               <div className="spinner" />
-              <p>Checking <strong>{fileName}</strong> for grammar, spelling, punctuation, style &amp; facts…</p>
+              <p>Checking <strong>{fileName}</strong> for tense, hooks, grammar, spelling, punctuation &amp; facts…</p>
               <p className="muted">This runs several AI passes, so it can take a bit.</p>
             </div>
           )}
