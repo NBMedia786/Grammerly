@@ -44,3 +44,12 @@ def test_delete_rejects_path_traversal(monkeypatch, tmp_path):
     h = _fresh(monkeypatch, tmp_path)
     d = h.delete_review("../../etc/passwd")
     assert d["deleted"] is False
+
+
+def test_save_review_handles_write_error(monkeypatch, tmp_path):
+    h = _fresh(monkeypatch, tmp_path)
+    import json as _json
+    monkeypatch.setattr(h.json, "dump", lambda *a, **k: (_ for _ in ()).throw(OSError("disk full")))
+    r = h.save_review({"script_text": "x"}, "doc")
+    assert r["saved"] is False and r["reason"] == "write_error"
+    assert h.list_reviews() == []  # no partial file left behind

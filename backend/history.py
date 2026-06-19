@@ -61,8 +61,16 @@ def save_review(payload: Dict[str, Any], title: str) -> Dict[str, Any]:
     if "overall_rating" not in record:
         record["overall_rating"] = payload.get("overall_rating", "")
     path = os.path.join(_history_dir(), rid + ".json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(record, f, ensure_ascii=False)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(record, f, ensure_ascii=False)
+    except Exception:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+        return {"saved": False, "id": None, "reason": "write_error"}
     return {"saved": True, "id": rid, "reason": None}
 
 

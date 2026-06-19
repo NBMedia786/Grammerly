@@ -37,7 +37,7 @@ load_dotenv()
 PROMPTS_DIR = os.getenv("PROMPTS_DIR", "prompts")
 ALLOWED_EXT = {".docx", ".pdf", ".txt"}
 
-app = FastAPI(title="Viral Script Reviewer API", version="1.0.0")
+app = FastAPI(title="Writing Assistant API", version="1.0.0")
 
 # Dev CORS: allow the Vite dev server. Tighten allow_origins for production.
 app.add_middleware(
