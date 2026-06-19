@@ -24,7 +24,12 @@ content: |
     STEP 2 - FLAG ONLY GENUINE ERRORS.
     Using your Step 1 classification, flag a sentence ONLY when:
     - It is LIVE MAIN-TIMELINE ACTION written in PAST when it should be PRESENT, OR
-    - It is a clearly PRIOR event written in PRESENT when it should be PAST.
+    - It is a clearly PRIOR event written in PRESENT when it should be PAST, OR
+    - It MIXES tenses inside one sentence: if a sentence's other verbs are PAST
+      ("were", "had", "seemed") or it recounts an earlier dated event, a PRESENT verb in that
+      SAME sentence is inconsistent - flag it and fix that verb to PAST so the whole sentence
+      matches. (A fully present-tense live-action sentence with a date, like
+      "On April 19, 2024, officers arrive...", is correct and stays present.)
     Do NOT flag a sentence just because it is in past tense. Do NOT flag PRIOR-EVENT recaps,
     FRAMING/SUMMARY lines, FUTURE-IN-PAST ("would ..."), or quoted dialogue. When a past-tense
     sentence sits next to a prior-event cue ("earlier", "had", "would"), it is part of that
@@ -41,6 +46,9 @@ content: |
     ONLY flag clear errors like this:
     - "Officers arrived and found the baby unconscious, then they began CPR." (live action, mid-scene, in past)
       fix: "Officers arrive and find the baby unconscious, then they begin CPR."
+    - "But when there were still no signs of her whereabouts, on June 14, 2020, they arrive at her house in Tallahassee, only to realize that Victoria's disappearance might not be as straightforward as it seemed."
+      (mixed tense: "were" and "seemed" are past, but "arrive" is present - the past-dated recap should be consistent)
+      fix: change "they arrive" to "they arrived" so the whole sentence is past.
 
     For each genuine error add an Area of Improvement:
       - quote_verbatim - the exact sentence/clause, <=240 chars, copied verbatim.
