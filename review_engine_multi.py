@@ -359,6 +359,7 @@ def run_review_multi(
     prompts_dir: str = "Scriptmodel/prompts",
     temperature: float = 0.0,
     include_facts: bool = True,
+    on_progress=None,
     include_commentary: bool = False,  # kept for API parity; ignored
 ) -> str:
     """
@@ -386,6 +387,8 @@ def run_review_multi(
     last_specialist = 6 if include_facts else 5
     for i in range(1, last_specialist + 1):
         name = DISPLAY_BY_INDEX[i]
+        if on_progress:
+            on_progress(name)
         tmpl = _load_prompt(prompts_dir, i)
         prompt_body = _inject(tmpl, script=script_text)
         prompt = f"{global_preamble}{prompt_body}"
@@ -408,6 +411,8 @@ def run_review_multi(
     evidence = {"scores": scores, "per_parameter": per_parameter}
     evidence_json = json.dumps(evidence, ensure_ascii=False)
 
+    if on_progress:
+        on_progress("Overall")
     tmpl6 = _load_prompt(prompts_dir, 7)
     prompt6_body = _inject(tmpl6, evidence_json=evidence_json, script=script_text)
     prompt6 = f"{global_preamble}{prompt6_body}"
