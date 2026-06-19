@@ -641,3 +641,16 @@ button { font-family: inherit; }
 .orig-meter-fill { height: 100%; border-radius: 999px; transition: width .3s ease; }
 .orig-note { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
 .orig-disclaimer { font-size: 11.5px; color: #b4540a; margin: 6px 0 0; font-style: italic; }
+
+.progress-card { width: min(420px, 90vw); text-align: left; }
+.progress-title { text-align: center; margin: 0 0 16px; color: var(--text); }
+.progress-bar { height: 7px; border-radius: 999px; background: #e3e0d8; overflow: hidden; margin-bottom: 18px; }
+.progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8b6dff, #0ea5a5); transition: width .3s ease; }
+.progress-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+.pstep { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--faint); }
+.pstep-ico { width: 18px; height: 18px; flex: none; display: grid; place-items: center; border-radius: 50%;
+  border: 1.5px solid var(--line-strong); font-size: 11px; }
+.pstep.done { color: var(--text); }
+.pstep.done .pstep-ico { background: #2e9e5b; border-color: #2e9e5b; color: #fff; }
+.pstep.active { color: var(--text); font-weight: 600; }
+.pstep.active .pstep-ico { border-color: #8b6dff; border-top-color: transparent; animation: spin .8s linear infinite; }

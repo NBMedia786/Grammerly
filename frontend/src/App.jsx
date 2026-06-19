@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  analyzeFile, analyzeText, getHistory, getHistoryItem, deleteHistoryItem, renameHistoryItem, getStorage,
+  analyzeFile, analyzeText, analyzeTextStream, analyzeFileStream,
+  getHistory, getHistoryItem, deleteHistoryItem, renameHistoryItem, getStorage,
   checkOriginality,
 } from './api.js'
 import { buildEditedText, copyToClipboard } from './highlight.js'
@@ -26,6 +27,7 @@ export default function App() {
   const [saveWarning, setSaveWarning] = useState(false)
   const [navOpen, setNavOpen] = useState(false) // mobile sidebar drawer
   const [origLoading, setOrigLoading] = useState(false)
+  const [progress, setProgress] = useState({ stages: [], completed: [], current: null })
 
   const fileInput = useRef(null)
 
@@ -80,17 +82,30 @@ export default function App() {
     refreshSidebar()
   }
 
+  function handleProgress(ev) {
+    if (ev.type === 'stages') setProgress({ stages: ev.stages, completed: [], current: null })
+    else if (ev.type === 'progress') {
+      setProgress((p) => ({
+        ...p,
+        completed: p.current ? [...p.completed, p.current] : p.completed,
+        current: ev.stage,
+      }))
+    }
+  }
+
   async function onPick(file) {
     if (!file) return
-    setFileName(file.name); setView('loading'); setError('')
-    try { onResult(await analyzeFile(file)) }
+    setFileName(file.name); setProgress({ stages: [], completed: [], current: null })
+    setView('loading'); setError('')
+    try { onResult(await analyzeFileStream(file, handleProgress)) }
     catch (e) { setError(e.message || 'Something went wrong.'); setView('error') }
   }
 
   async function onAnalyzeText() {
     if (pasteText.trim().length < 50) return
-    setFileName('Pasted text'); setView('loading'); setError('')
-    try { onResult(await analyzeText(pasteText)) }
+    setFileName('Pasted text'); setProgress({ stages: [], completed: [], current: null })
+    setView('loading'); setError('')
+    try { onResult(await analyzeTextStream(pasteText, handleProgress)) }
     catch (e) { setError(e.message || 'Something went wrong.'); setView('error') }
   }
 
@@ -168,12 +183,30 @@ export default function App() {
   // ---------- Main content ----------
   function MainContent() {
     if (view === 'loading') {
+      const total = progress.stages.length || 7
+      const pct = Math.round((progress.completed.length / total) * 100)
+      const label = (s) => (s === 'Tense/Narrative' ? 'Tense' : s)
       return (
         <div className="center-card">
-          <div className="loadcard">
-            <div className="spinner" />
-            <p>Reviewing <strong>{fileName}</strong> for tense, hooks, grammar, spelling, punctuation &amp; facts…</p>
-            <p className="muted">This runs several AI passes, so it can take a moment.</p>
+          <div className="progress-card">
+            <p className="progress-title">Reviewing <strong>{fileName}</strong></p>
+            <div className="progress-bar"><div className="progress-fill" style={{ width: `${pct}%` }} /></div>
+            {progress.stages.length === 0 ? (
+              <p className="muted">Starting the review…</p>
+            ) : (
+              <ul className="progress-steps">
+                {progress.stages.map((s) => {
+                  const state = progress.completed.includes(s) ? 'done'
+                    : (s === progress.current ? 'active' : 'pending')
+                  return (
+                    <li key={s} className={`pstep ${state}`}>
+                      <span className="pstep-ico">{state === 'done' ? '✓' : state === 'active' ? '' : ''}</span>
+                      {label(s)}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
         </div>
       )
