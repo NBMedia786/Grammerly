@@ -65,3 +65,8 @@ def grounded_generate(prompt: str, temperature: float = 0.0) -> str:
         return _grounded_call(prompt, temperature)
     except Exception:
         return _ungrounded_call(prompt, temperature)
+
+
+def ungrounded_generate(prompt: str, temperature: float = 0.0) -> str:
+    """Plain (no search) Gemini call — used by AI-content detection."""
+    return _ungrounded_call(prompt, temperature)
