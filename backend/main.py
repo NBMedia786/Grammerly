@@ -167,6 +167,7 @@ def _analyze_text(script_text: str, title: str) -> dict:
     save = history_store.save_review(response, title)
     response["saved"] = save["saved"]
     response["save_error"] = save["reason"]
+    response["id"] = save["id"]  # history id of this run (None if storage full) — lets the UI highlight it
     return response
 
 

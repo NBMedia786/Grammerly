@@ -24,7 +24,7 @@ export default function ScriptView({ text, spans, decisions, aoi, activeAid, onS
           const style =
             seg.state === 'applied'
               ? undefined
-              : { background: seg.color + '33', borderColor: seg.color }
+              : { '--mk': seg.color, borderBottomColor: seg.color }
           return (
             <mark
               key={`m${markKey++}`}
