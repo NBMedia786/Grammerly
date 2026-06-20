@@ -16,7 +16,10 @@ falls back to the free Gemini heuristic, so a missing key or API hiccup never br
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
 import os
+import re
 import time
 import uuid
 from typing import Any, Dict
@@ -130,13 +133,33 @@ def plagiarism_available() -> bool:
     return bool(_email() and _key() and _public_base())
 
 
+def _webhook_secret() -> str:
+    # A server-only secret for signing capability tokens. Falls back to the (secret) API key.
+    return (os.getenv("COPYLEAKS_WEBHOOK_SECRET") or _key() or "copyleaks-local-secret").strip()
+
+
+def _sign(label: str, scan_id: str) -> str:
+    msg = f"{label}:{scan_id}".encode("utf-8")
+    return hmac.new(_webhook_secret().encode("utf-8"), msg, hashlib.sha256).hexdigest()[:32]
+
+
+def webhook_token(scan_id: str) -> str:
+    """Unguessable token Copyleaks must echo back (kept server-side, embedded in the callback URL)."""
+    return _sign("webhook", str(scan_id))
+
+
+def result_token(scan_id: str) -> str:
+    """Separate token handed to the frontend so only the submitter can poll the result."""
+    return _sign("result", str(scan_id))
+
+
 def submit_plagiarism_scan(text: str, scan_id: str, timeout: float = 30.0) -> None:
     """Submit plain text for a plagiarism scan. Copyleaks will POST the result to
-    {COPYLEAKS_PUBLIC_BASE_URL}/api/copyleaks/webhook/{scan_id}/{STATUS}. Raises on failure;
-    the caller falls back to the free Gemini check."""
+    {COPYLEAKS_PUBLIC_BASE_URL}/api/copyleaks/webhook/{scan_id}/{webhook_token}/{STATUS}. Raises
+    on failure; the caller falls back to the free Gemini check."""
     token = _login()
     b64 = base64.b64encode((text or "").encode("utf-8")).decode("ascii")
-    webhook = f"{_public_base()}/api/copyleaks/webhook/{scan_id}/{{STATUS}}"
+    webhook = f"{_public_base()}/api/copyleaks/webhook/{scan_id}/{webhook_token(scan_id)}/{{STATUS}}"
     body = {
         "base64": b64,
         "filename": "submission.txt",
@@ -167,10 +190,11 @@ def _score_to_percent(agg) -> Any:
 
 def _source_url(item: Dict[str, Any]) -> str:
     url = (item.get("url") or "").strip()
-    if url:
-        return url
-    meta = item.get("metadata") or {}
-    return (meta.get("finalUrl") or meta.get("canonicalUrl") or "").strip()
+    if not url:
+        meta = item.get("metadata") or {}
+        url = (meta.get("finalUrl") or meta.get("canonicalUrl") or "").strip()
+    # Only surface safe web schemes — drop javascript:/data:/etc. (defense-in-depth vs XSS).
+    return url if re.match(r"^https?://", url, re.I) else ""
 
 
 def parse_completion_webhook(payload: Dict[str, Any]) -> Dict[str, Any]:

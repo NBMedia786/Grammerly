@@ -129,3 +129,24 @@ def test_parse_completion_webhook_extracts_score_and_sources():
 def test_parse_completion_webhook_empty():
     r = cc.parse_completion_webhook({})
     assert r["status"] == "completed" and r["percent"] is None and r["count"] == 0
+
+
+def test_capability_tokens_are_deterministic_distinct_and_scoped(monkeypatch):
+    monkeypatch.setenv("COPYLEAKS_API_KEY", "secret-key")
+    monkeypatch.delenv("COPYLEAKS_WEBHOOK_SECRET", raising=False)
+    w = cc.webhook_token("abc")
+    r = cc.result_token("abc")
+    assert len(w) == 32 and len(r) == 32
+    assert w != r                          # different label -> different token
+    assert cc.webhook_token("abc") == w    # deterministic
+    assert cc.webhook_token("xyz") != w    # per-scan-id
+    assert cc.result_token("xyz") != r
+
+
+def test_source_url_rejects_dangerous_schemes():
+    assert cc._source_url({"url": "https://ok.com/x"}) == "https://ok.com/x"
+    assert cc._source_url({"url": "http://ok.com/x"}) == "http://ok.com/x"
+    assert cc._source_url({"url": "javascript:alert(1)"}) == ""
+    assert cc._source_url({"url": "data:text/html,<script>"}) == ""
+    assert cc._source_url({"metadata": {"finalUrl": "https://m.com/y"}}) == "https://m.com/y"
+    assert cc._source_url({"metadata": {"finalUrl": "ftp://m.com/y"}}) == ""

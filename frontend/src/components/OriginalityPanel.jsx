@@ -13,6 +13,11 @@ function plagColor(pct) {
   return '#2e9e5b'
 }
 
+// Only allow http(s) links — never render javascript:/data: hrefs (XSS guard).
+function safeUrl(u) {
+  return typeof u === 'string' && /^https?:\/\//i.test(u.trim()) ? u.trim() : null
+}
+
 export default function OriginalityPanel({ data }) {
   if (!data) return null
   const ai = data.ai_detection || {}
@@ -82,14 +87,17 @@ function PlagCopyleaks({ plag }) {
       )}
       {sources.length > 0 && (
         <ul className="orig-sources">
-          {sources.map((s, i) => (
-            <li key={i}>
-              {s.url
-                ? <a href={s.url} target="_blank" rel="noreferrer">{s.title || s.url}</a>
-                : <span>{s.title || 'source'}</span>}
-              {typeof s.matchedWords === 'number' && <span className="orig-src-meta"> · {s.matchedWords} words</span>}
-            </li>
-          ))}
+          {sources.map((s, i) => {
+            const href = safeUrl(s.url)
+            return (
+              <li key={i}>
+                {href
+                  ? <a href={href} target="_blank" rel="noreferrer noopener">{s.title || href}</a>
+                  : <span>{s.title || 'source'}</span>}
+                {typeof s.matchedWords === 'number' && <span className="orig-src-meta"> · {s.matchedWords} words</span>}
+              </li>
+            )
+          })}
         </ul>
       )}
     </>

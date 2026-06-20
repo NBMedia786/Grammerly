@@ -155,17 +155,17 @@ export default function App() {
   }
 
   // Poll our backend for an async Copyleaks plagiarism result until it completes.
-  function pollPlagiarism(scanId, tries = 0) {
-    getPlagiarismResult(scanId).then((r) => {
+  function pollPlagiarism(scanId, token, tries = 0) {
+    getPlagiarismResult(scanId, token).then((r) => {
       if (r.status === 'completed' || r.status === 'error') {
         setPlagiarism({ engine: 'copyleaks', ...r })
       } else if (tries < 60) {
-        setTimeout(() => pollPlagiarism(scanId, tries + 1), 3000)
+        setTimeout(() => pollPlagiarism(scanId, token, tries + 1), 3000)
       } else {
         setPlagiarism({ engine: 'copyleaks', status: 'timeout' })
       }
     }).catch(() => {
-      if (tries < 60) setTimeout(() => pollPlagiarism(scanId, tries + 1), 3000)
+      if (tries < 60) setTimeout(() => pollPlagiarism(scanId, token, tries + 1), 3000)
     })
   }
 
@@ -182,7 +182,7 @@ export default function App() {
         originality: { ai_detection: o.ai_detection, plagiarism: o.plagiarism },
       }))
       if (o.plagiarism && o.plagiarism.engine === 'copyleaks' && o.plagiarism.scan_id) {
-        pollPlagiarism(o.plagiarism.scan_id)
+        pollPlagiarism(o.plagiarism.scan_id, o.plagiarism.result_token)
       }
     } catch (e) {
       window.alert(e.message || 'Originality check failed.')

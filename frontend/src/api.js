@@ -52,8 +52,9 @@ export async function checkOriginality(text) {
 }
 
 // Poll an async Copyleaks plagiarism scan; returns {status:'pending'|'completed'|'error'|'not_found', ...}
-export async function getPlagiarismResult(scanId) {
-  return _json(await fetch(`/api/copyleaks/result/${scanId}`))
+// `token` is the result_token issued by /api/originality — required to read the result.
+export async function getPlagiarismResult(scanId, token) {
+  return _json(await fetch(`/api/copyleaks/result/${scanId}?token=${encodeURIComponent(token || '')}`))
 }
 
 async function _streamAnalyze(url, init, onProgress) {

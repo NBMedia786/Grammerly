@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import queue
@@ -48,11 +49,22 @@ load_dotenv()
 _PLAG_STORE: dict = {}
 _PLAG_LOCK = threading.Lock()
 _PLAG_TTL = 3600
+_PLAG_MAX = 10000
 
 
 def _plag_prune(now: float) -> None:
     for k in [k for k, v in list(_PLAG_STORE.items()) if now - v.get("_ts", now) > _PLAG_TTL]:
         _PLAG_STORE.pop(k, None)
+
+
+def _plag_put_new(scan_id: str, record: dict, now: float) -> None:
+    """Insert a brand-new scan record (the submit path), pruning + capping to bound memory."""
+    record["_ts"] = now
+    _plag_prune(now)
+    if len(_PLAG_STORE) >= _PLAG_MAX and scan_id not in _PLAG_STORE:
+        oldest = min(_PLAG_STORE, key=lambda k: _PLAG_STORE[k].get("_ts", 0))
+        _PLAG_STORE.pop(oldest, None)
+    _PLAG_STORE[scan_id] = record
 
 # Default to the repo-root prompts/ folder (absolute, so it resolves no matter what
 # directory uvicorn is launched from). Set PROMPTS_DIR=Scriptmodel/prompts to load from S3.
@@ -361,11 +373,12 @@ def originality(body: OriginalityIn):
             copyleaks_client.submit_plagiarism_scan(text, scan_id)
             now = time.time()
             with _PLAG_LOCK:
-                _plag_prune(now)
-                _PLAG_STORE[scan_id] = {"engine": "copyleaks", "status": "pending", "_ts": now}
+                _plag_put_new(scan_id, {"engine": "copyleaks", "status": "pending"}, now)
             return {
                 "ai_detection": ai,
-                "plagiarism": {"engine": "copyleaks", "status": "pending", "scan_id": scan_id},
+                # result_token binds polling to this submitter; webhook token stays server-side.
+                "plagiarism": {"engine": "copyleaks", "status": "pending", "scan_id": scan_id,
+                               "result_token": copyleaks_client.result_token(scan_id)},
                 "spans": [],
                 "aoi": {},
             }
@@ -403,10 +416,18 @@ def originality(body: OriginalityIn):
     }
 
 
-@app.post("/api/copyleaks/webhook/{scan_id}/{status}")
-async def copyleaks_webhook(scan_id: str, status: str, request: Request):
+@app.post("/api/copyleaks/webhook/{scan_id}/{token}/{status}")
+async def copyleaks_webhook(scan_id: str, token: str, status: str, request: Request):
     """Copyleaks pushes scan results here (status = completed | error | creditsChecked | indexed).
-    Must return 2xx quickly and be idempotent — Copyleaks delivers at-least-once with retries."""
+    Authenticated by an HMAC capability token in the path that only we (and Copyleaks, via the
+    callback URL we sent) know. Returns 2xx quickly and is idempotent (at-least-once delivery)."""
+    # 1) Verify the capability token — rejects forged webhooks.
+    if not hmac.compare_digest(str(token), copyleaks_client.webhook_token(scan_id)):
+        raise HTTPException(status_code=403, detail="Invalid webhook token")
+    # 2) Reject oversized bodies (a completion payload is small).
+    clen = request.headers.get("content-length")
+    if clen and clen.isdigit() and int(clen) > 5_000_000:
+        raise HTTPException(status_code=413, detail="Payload too large")
     try:
         payload = await request.json()
     except Exception:
@@ -419,17 +440,21 @@ async def copyleaks_webhook(scan_id: str, status: str, request: Request):
                   "error": str((payload or {}).get("error") or "Copyleaks reported a scan error.")}
     else:
         return {"ok": True, "ignored": st}  # creditsChecked / indexed — nothing to store
-    now = time.time()
-    record["_ts"] = now
+    record["_ts"] = time.time()
     with _PLAG_LOCK:
-        _plag_prune(now)
+        # 3) Only complete scans THIS server actually issued — blocks unsolicited record creation.
+        if scan_id not in _PLAG_STORE:
+            raise HTTPException(status_code=404, detail="Unknown scan")
         _PLAG_STORE[scan_id] = record
     return {"ok": True}
 
 
 @app.get("/api/copyleaks/result/{scan_id}")
-def copyleaks_result(scan_id: str):
-    """Frontend polls this until status flips from 'pending' to 'completed'/'error'."""
+def copyleaks_result(scan_id: str, token: str = ""):
+    """Frontend polls this until status flips from 'pending' to 'completed'/'error'.
+    Requires the result_token issued at submit time, so only the submitter can read it."""
+    if not hmac.compare_digest(str(token), copyleaks_client.result_token(scan_id)):
+        raise HTTPException(status_code=403, detail="Invalid result token")
     with _PLAG_LOCK:
         rec = _PLAG_STORE.get(scan_id)
     if not rec:
