@@ -3,7 +3,7 @@ import { copyToClipboard } from '../highlight.js'
 
 const VERDICT = {
   incorrect: { label: '✗ Incorrect', cls: 'v-bad' },
-  unverifiable: { label: '? Unverifiable', cls: 'v-warn' },
+  unverifiable: { label: '? Needs review', cls: 'v-warn' },
   correct: { label: '✓ Correct', cls: 'v-ok' },
 }
 

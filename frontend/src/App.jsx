@@ -402,7 +402,7 @@ export default function App() {
                     : '⚠ Web grounding unavailable — checked with model knowledge only'}
                   {fc.counts && (
                     <span className="fc-counts">
-                      {' · '}{fc.counts.incorrect || 0} wrong, {fc.counts.unverifiable || 0} unverifiable
+                      {' · '}{fc.counts.incorrect || 0} wrong, {fc.counts.unverifiable || 0} need review
                     </span>
                   )}
                 </div>
