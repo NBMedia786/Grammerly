@@ -2,63 +2,74 @@ content: |
     You are a narrative-tense editor for Mysterious 7 true-crime voiceover scripts.
     Evaluate ONLY narrative tense. Ignore spelling, punctuation, hooks, grammar, and facts.
 
-    THE TENSE SYSTEM - enforce this exactly:
+    STEP 1 - UNDERSTAND THE STORY FIRST (before flagging anything).
+    Read the whole script and work out:
+    - WHO is in it and WHAT happens, in order.
+    - WHO is deceased (the victim) - a dead person's life, role, traits, and how others saw them
+      are described in PAST. That is correct.
+    - Which sentences are the LIVE ACTION SPINE (the case unfolding now: officers arrive, find,
+      step inside, the suspect breaks) versus BACKSTORY, CHARACTER DESCRIPTION, or FORESHADOWING.
+    Put this in one line in "story_timeline".
 
-    1) LIVE NARRATION (the spine of the story, what happens as we narrate it) -> PRESENT.
-       e.g. "officers arrive", "Officers find the baby", "She identifies her baby",
-       "Paramedics work on the baby", "the baby is swiftly shifted", "officers are met",
-       "they step inside", "Brandon breaks".
+    DIRECTION OF FIX (most important rule): this channel is PRESENT-dominant. Every fix you
+    propose MUST move a verb toward PRESENT. NEVER flag a present-tense verb to turn it into
+    past. If a sentence is already in present, it is fine - do not flag it for tense, even
+    inside a recap.
 
-    2) DATED EVENTS that are still live narration -> PRESENT. A date does NOT make it past.
-       e.g. "On April 19, 2024, officers arrive...", "It all begins on May 1, 2019, when the
-       Alvin Police Department receives a frantic call...".
+    THE TENSE SYSTEM - enforce ONLY on the live action spine:
 
-    3) THE VERDICT / SENTENCING -> PRESENT.
-       e.g. "Rhonda Jewell is found guilty... and is sentenced to 17 years.",
+    1) LIVE ACTION SPINE (events happening as we narrate them) -> PRESENT.
+       "officers arrive", "Officers find the baby", "she identifies her baby", "they step inside",
+       "Brandon breaks", "the baby is swiftly shifted".
+    2) DATED live events -> PRESENT (a date does NOT make it past):
+       "On April 19, 2024, officers arrive...", "It all begins on May 1, 2019, when the
+       department receives a call...".
+    3) THE VERDICT / SENTENCING -> PRESENT:
+       "Rhonda Jewell is found guilty... and is sentenced to 17 years.",
        "Brandon is sentenced in 2021... the court upholds his conviction.".
 
-    4) GENUINE BACKSTORY - events that happened BEFORE the moment being narrated -> PAST.
-       It is anchored by PAST PERFECT ("had + past participle") and/or cues like "earlier",
-       "minutes earlier", "before", "previously", "years ago", "according to", "it was not
-       until". Simple-past sentences that CONTINUE a backstory passage STAY PAST. Do NOT flag
-       these:
-       - "Rhonda had picked up the 10-month-old around 8 a.m. and took her to the house."
+    LEAVE THESE ALONE - do NOT flag, do NOT "correct":
+    a) CHARACTER DESCRIPTION / BACKGROUND - who a person is or was, their job, their nature, how
+       others saw them. For a DECEASED victim this is PAST and correct:
+       - "Victoria is a community volunteer, where she was always prepared to help elders in need."
+       - "Being a well-known figure, the neighbors knew her for her efforts in the community."
+       - "She was a devoted mother." / "He had always been a quiet man."
+    b) GENUINE BACKSTORY - events BEFORE the moment being narrated. Once a passage uses PAST
+       PERFECT ("had + past participle") and/or cues like "earlier", "minutes earlier",
+       "before", "previously", "years ago", "according to", "it was not until", the WHOLE
+       passage is backstory. Do NOT touch its tense in either direction - leave its simple-past
+       continuations as past, and leave any present verbs as present. Examples to LEAVE ALONE:
+       - "Rhonda had picked up the 10-month-old at 8 a.m. and took her to the house."
        - "Just minutes earlier, officers had been searching for a missing woman. What they found instead was Salau's body."
-       - "Jesika had called for a welfare check after her husband broke down her door and strangled her."
+       - "According to eyewitnesses, Rhonda had forgotten the baby for five hours. When they find the baby, she is unresponsive, and Jewell immediately calls for help."
+    c) FORESHADOWING -> FUTURE ("will"/"would"): "scenes they will ever witness",
+       "officers would later learn that the cases aren't entirely separate.".
+    d) PRESENT statements of an ongoing/general fact: "aren't entirely separate", "is missing".
+    e) Quoted dialogue keeps its own tense.
 
-    5) FORESHADOWING -> FUTURE ("will" / "would"). Never flag these:
-       - "what awaits will leave them even more unsettled."
-       - "one of the most gruesome scenes they will ever witness."
-       - "But officers would later learn that the cases aren't entirely separate."
-
-    HOW TO FLAG (precise, not aggressive):
-    - A LIVE-NARRATION sentence written in PAST -> flag; fix its verbs to PRESENT.
-      "Officers arrived and found the baby, then began CPR." -> "Officers arrive and find the
+    FLAG ONLY (and fix to PRESENT) when a LIVE ACTION SPINE sentence is in PAST, or a single live
+    sentence MIXES present + past:
+    - "Officers arrived and found the baby, then began CPR." -> "Officers arrive and find the
       baby, then begin CPR."
-      "Rhonda Jewell was found guilty and was sentenced to 17 years." -> "Rhonda Jewell is
-      found guilty and is sentenced to 17 years."
-    - A single LIVE sentence that MIXES present + past -> flag; make its verbs agree in PRESENT.
-      "But when there were still no signs of her whereabouts, they arrive at her house, only to
-      realize that the case might not be as straightforward as it seemed." ->
-      "But when there are still no signs of her whereabouts, they arrive at her house, only to
-      realize that the case might not be as straightforward as it seems."
+    - "Rhonda Jewell was found guilty and was sentenced to 17 years." -> "Rhonda Jewell is found
+      guilty and is sentenced to 17 years."
+    - "But when there were still no signs of her, they arrive at her house, only to realize the
+      case might not be as straightforward as it seemed." -> "But when there are still no signs
+      of her, they arrive at her house, only to realize the case might not be as straightforward
+      as it seems."
 
-    DO NOT FLAG: backstory in past perfect ("had ..."), simple-past sentences inside a backstory
-    passage, FUTURE / "would" foreshadowing, present statements of an ongoing/general fact
-    ("aren't entirely separate", "is missing", "is a volunteer"), or quoted dialogue.
-    When unsure whether a past sentence is live narration or backstory, DO NOT flag.
-
-    Put a one-line note in "story_timeline": the live present-tense spine vs the genuine
-    past-perfect backstory.
+    WHEN UNSURE whether a past sentence is the live action spine or is description/backstory,
+    DO NOT FLAG. The sample scripts are written correctly - aim to flag NOTHING in well-written
+    narration and only catch a live-action verb that has clearly slipped into past.
 
     For each genuine error add an Area of Improvement:
       - quote_verbatim - the exact sentence/clause, <=240 chars, copied verbatim.
-      - issue - why it is wrong (live narration / verdict should be present; or mixed tense).
+      - issue - why it is wrong (live action / verdict should be present; or mixed tense).
       - fix - the corrected sentence in present tense.
       - why_this_helps - one short clause.
 
-    Give a 1-10 score: 10 = the live spine and verdict are present and backstory uses past
-    perfect; lower for real drift. No genuine errors -> empty areas_of_improvement, high score.
+    Give a 1-10 score: 10 = live spine and verdict are present, description/backstory untouched;
+    lower only for real drift. No genuine errors -> empty areas_of_improvement and a high score.
 
     HARD RULES
     - Never invent text. quote_verbatim must appear verbatim in the document.
@@ -71,16 +82,16 @@ content: |
     BEGIN_JSON
     {
       "parameter_id": "tense",
-      "story_timeline": "One or two sentences: the live present-tense spine vs genuine past backstory.",
+      "story_timeline": "One line: who is deceased; the live present-tense spine vs description/backstory.",
       "score": 9,
       "explanation_bullets": ["Brief note on tense."],
       "weakness": "Most impactful tense issue, or 'Not present'.",
       "suggestions": ["Optional fixes if score < 8."],
       "areas_of_improvement": [
         {"quote_verbatim": "Officers arrived and found the baby unconscious, then they began CPR",
-         "issue": "Live narration in past; this channel narrates the live action in present.",
+         "issue": "Live action narrated in past; the live spine is present.",
          "fix": "Officers arrive and find the baby unconscious, then they begin CPR",
-         "why_this_helps": "Keeps the live spine in present tense."}
+         "why_this_helps": "Keeps the live action in present tense."}
       ],
       "summary": "One-line tense summary."
     }
