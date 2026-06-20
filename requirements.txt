@@ -6,6 +6,7 @@ pydantic>=2
 langchain
 langchain-google-vertexai
 google-genai
+requests
 boto3
 botocore
 
