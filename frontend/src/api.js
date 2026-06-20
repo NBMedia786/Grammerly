@@ -51,6 +51,11 @@ export async function checkOriginality(text) {
   }))
 }
 
+// Poll an async Copyleaks plagiarism scan; returns {status:'pending'|'completed'|'error'|'not_found', ...}
+export async function getPlagiarismResult(scanId) {
+  return _json(await fetch(`/api/copyleaks/result/${scanId}`))
+}
+
 async function _streamAnalyze(url, init, onProgress) {
   const res = await fetch(url, init)
   if (!res.ok) {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   analyzeFile, analyzeText, analyzeTextStream, analyzeFileStream,
   getHistory, getHistoryItem, deleteHistoryItem, renameHistoryItem, getStorage,
-  checkOriginality,
+  checkOriginality, getPlagiarismResult,
 } from './api.js'
 import { buildEditedText, copyToClipboard } from './highlight.js'
 import Sidebar from './components/Sidebar.jsx'
@@ -148,6 +148,27 @@ export default function App() {
     } catch (_) { /* ignore */ }
   }
 
+  function setPlagiarism(plag) {
+    setResult((prev) => (prev && prev.originality
+      ? { ...prev, originality: { ...prev.originality, plagiarism: plag } }
+      : prev))
+  }
+
+  // Poll our backend for an async Copyleaks plagiarism result until it completes.
+  function pollPlagiarism(scanId, tries = 0) {
+    getPlagiarismResult(scanId).then((r) => {
+      if (r.status === 'completed' || r.status === 'error') {
+        setPlagiarism({ engine: 'copyleaks', ...r })
+      } else if (tries < 60) {
+        setTimeout(() => pollPlagiarism(scanId, tries + 1), 3000)
+      } else {
+        setPlagiarism({ engine: 'copyleaks', status: 'timeout' })
+      }
+    }).catch(() => {
+      if (tries < 60) setTimeout(() => pollPlagiarism(scanId, tries + 1), 3000)
+    })
+  }
+
   async function onCheckOriginality() {
     if (!result || origLoading) return
     setOrigLoading(true)
@@ -160,6 +181,9 @@ export default function App() {
         param_colors: { ...prev.param_colors, Plagiarism: '#f97316' },
         originality: { ai_detection: o.ai_detection, plagiarism: o.plagiarism },
       }))
+      if (o.plagiarism && o.plagiarism.engine === 'copyleaks' && o.plagiarism.scan_id) {
+        pollPlagiarism(o.plagiarism.scan_id)
+      }
     } catch (e) {
       window.alert(e.message || 'Originality check failed.')
     } finally {

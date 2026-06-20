@@ -80,3 +80,52 @@ def test_run_ai_detection_copyleaks_error_falls_back(monkeypatch):
                         lambda t: {"likelihood": 5, "band": "low", "reasoning": "g", "source": "gemini"})
     out = ai_detect.run_ai_detection("text")
     assert out["source"] == "gemini"
+
+
+# --- plagiarism (async) ---
+
+def test_score_to_percent_handles_fraction_and_percent():
+    assert cc._score_to_percent(0.23) == 23      # 0-1 fraction
+    assert cc._score_to_percent(23) == 23        # already 0-100
+    assert cc._score_to_percent(1.0) == 100      # full match as fraction
+    assert cc._score_to_percent(0) == 0
+    assert cc._score_to_percent(None) is None
+    assert cc._score_to_percent("x") is None
+
+
+def test_plagiarism_available_requires_base_url(monkeypatch):
+    monkeypatch.setenv("COPYLEAKS_EMAIL", "a@b.com")
+    monkeypatch.setenv("COPYLEAKS_API_KEY", "k")
+    monkeypatch.delenv("COPYLEAKS_PUBLIC_BASE_URL", raising=False)
+    assert cc.plagiarism_available() is False
+    monkeypatch.setenv("COPYLEAKS_PUBLIC_BASE_URL", "https://x.example.com/")
+    assert cc.plagiarism_available() is True
+    assert cc._public_base() == "https://x.example.com"  # trailing slash stripped
+
+
+def test_parse_completion_webhook_extracts_score_and_sources():
+    payload = {
+        "scannedDocument": {"totalWords": 480},
+        "results": {
+            "score": {"aggregatedScore": 23, "identicalWords": 90,
+                      "minorChangedWords": 12, "relatedMeaningWords": 8},
+            "internet": [
+                {"url": "https://en.wikipedia.org/wiki/Foo", "title": "Foo", "matchedWords": 70},
+                {"title": "NoURL", "matchedWords": 20, "metadata": {"finalUrl": "https://news.ex/x"}},
+            ],
+            "database": [{"title": "Prev", "matchedWords": 5, "scanId": "y"}],
+        },
+    }
+    r = cc.parse_completion_webhook(payload)
+    assert r["status"] == "completed" and r["percent"] == 23
+    assert r["totalWords"] == 480 and r["count"] == 3
+    # sorted by matchedWords desc; url falls back to metadata.finalUrl; database has no url
+    assert [s["matchedWords"] for s in r["sources"]] == [70, 20, 5]
+    assert r["sources"][0]["url"] == "https://en.wikipedia.org/wiki/Foo"
+    assert r["sources"][1]["url"] == "https://news.ex/x"
+    assert r["sources"][2]["url"] == ""
+
+
+def test_parse_completion_webhook_empty():
+    r = cc.parse_completion_webhook({})
+    assert r["status"] == "completed" and r["percent"] is None and r["count"] == 0

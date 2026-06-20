@@ -15,12 +15,14 @@ import queue
 import sys
 import tempfile
 import threading
+import time
+import uuid
 from pathlib import Path
 
 # Make the repo-root modules (utils1, review_engine_multi) importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
@@ -32,6 +34,7 @@ from matching import build_spans_by_param, locate_quote, PARAM_COLORS
 from factcheck import run_fact_check
 from plagiarism import run_plagiarism_check
 from ai_detect import run_ai_detection
+import copyleaks_client
 import history as history_store
 
 # Document-highlight colors for fact-check verdicts.
@@ -39,6 +42,17 @@ FACT_COLORS = {"incorrect": "#ef4444", "unverifiable": "#f59e0b", "correct": "#2
 PLAGIARISM_COLOR = "#f97316"
 
 load_dotenv()
+
+# In-memory store for async Copyleaks plagiarism results, keyed by scanId. PM2 runs a single
+# uvicorn instance, so a process-local dict is fine; entries expire after _PLAG_TTL seconds.
+_PLAG_STORE: dict = {}
+_PLAG_LOCK = threading.Lock()
+_PLAG_TTL = 3600
+
+
+def _plag_prune(now: float) -> None:
+    for k in [k for k, v in list(_PLAG_STORE.items()) if now - v.get("_ts", now) > _PLAG_TTL]:
+        _PLAG_STORE.pop(k, None)
 
 # Default to the repo-root prompts/ folder (absolute, so it resolves no matter what
 # directory uvicorn is launched from). Set PROMPTS_DIR=Scriptmodel/prompts to load from S3.
@@ -340,6 +354,24 @@ def originality(body: OriginalityIn):
         ai["disclaimer"] = ("Rough estimate — automated AI detection is unreliable. "
                             "Treat this as a signal, not a verdict.")
 
+    # Plagiarism: prefer Copyleaks (real %, async webhook) when configured; else Gemini.
+    if copyleaks_client.plagiarism_available():
+        scan_id = uuid.uuid4().hex
+        try:
+            copyleaks_client.submit_plagiarism_scan(text, scan_id)
+            now = time.time()
+            with _PLAG_LOCK:
+                _plag_prune(now)
+                _PLAG_STORE[scan_id] = {"engine": "copyleaks", "status": "pending", "_ts": now}
+            return {
+                "ai_detection": ai,
+                "plagiarism": {"engine": "copyleaks", "status": "pending", "scan_id": scan_id},
+                "spans": [],
+                "aoi": {},
+            }
+        except Exception:
+            pass  # submit failed -> fall back to the free Gemini check below
+
     try:
         plag = run_plagiarism_check(text)
     except Exception as e:
@@ -364,11 +396,45 @@ def originality(body: OriginalityIn):
 
     return {
         "ai_detection": ai,
-        "plagiarism": {"web_grounded": plag.get("web_grounded", False), "count": plag.get("count", 0),
-                       "sources": plag.get("sources", [])},
+        "plagiarism": {"engine": "gemini", "web_grounded": plag.get("web_grounded", False),
+                       "count": plag.get("count", 0), "sources": plag.get("sources", [])},
         "spans": spans,
         "aoi": aoi,
     }
+
+
+@app.post("/api/copyleaks/webhook/{scan_id}/{status}")
+async def copyleaks_webhook(scan_id: str, status: str, request: Request):
+    """Copyleaks pushes scan results here (status = completed | error | creditsChecked | indexed).
+    Must return 2xx quickly and be idempotent — Copyleaks delivers at-least-once with retries."""
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    st = (status or "").strip().lower()
+    if st == "completed":
+        record = copyleaks_client.parse_completion_webhook(payload)
+    elif st == "error":
+        record = {"engine": "copyleaks", "status": "error",
+                  "error": str((payload or {}).get("error") or "Copyleaks reported a scan error.")}
+    else:
+        return {"ok": True, "ignored": st}  # creditsChecked / indexed — nothing to store
+    now = time.time()
+    record["_ts"] = now
+    with _PLAG_LOCK:
+        _plag_prune(now)
+        _PLAG_STORE[scan_id] = record
+    return {"ok": True}
+
+
+@app.get("/api/copyleaks/result/{scan_id}")
+def copyleaks_result(scan_id: str):
+    """Frontend polls this until status flips from 'pending' to 'completed'/'error'."""
+    with _PLAG_LOCK:
+        rec = _PLAG_STORE.get(scan_id)
+    if not rec:
+        return {"status": "not_found"}
+    return {k: v for k, v in rec.items() if k != "_ts"}
 
 
 # --- Serve the built frontend (single-port deploy) --------------------------------

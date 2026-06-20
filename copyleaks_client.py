@@ -15,6 +15,7 @@ falls back to the free Gemini heuristic, so a missing key or API hiccup never br
 """
 from __future__ import annotations
 
+import base64
 import os
 import time
 import uuid
@@ -110,3 +111,95 @@ def ai_detection(text: str, timeout: float = 30.0) -> Dict[str, Any]:
     )
     r.raise_for_status()
     return _parse_ai_response((r.json() or {}) if r.content else {})
+
+
+# --- Plagiarism (async v3 scans, webhook-based) -----------------------------------
+# Unlike the synchronous AI Detector, the plagiarism scan is push-based: submit the text,
+# and Copyleaks POSTs the completed results to a PUBLIC webhook. So this needs
+# COPYLEAKS_PUBLIC_BASE_URL (the reachable HTTPS base of our backend) on top of the creds.
+
+_SUBMIT_URL = "https://api.copyleaks.com/v3/scans/submit/file/{scan_id}"
+
+
+def _public_base() -> str:
+    return (os.getenv("COPYLEAKS_PUBLIC_BASE_URL") or "").strip().rstrip("/")
+
+
+def plagiarism_available() -> bool:
+    """True only when creds AND a public base URL (for the completion webhook) are set."""
+    return bool(_email() and _key() and _public_base())
+
+
+def submit_plagiarism_scan(text: str, scan_id: str, timeout: float = 30.0) -> None:
+    """Submit plain text for a plagiarism scan. Copyleaks will POST the result to
+    {COPYLEAKS_PUBLIC_BASE_URL}/api/copyleaks/webhook/{scan_id}/{STATUS}. Raises on failure;
+    the caller falls back to the free Gemini check."""
+    token = _login()
+    b64 = base64.b64encode((text or "").encode("utf-8")).decode("ascii")
+    webhook = f"{_public_base()}/api/copyleaks/webhook/{scan_id}/{{STATUS}}"
+    body = {
+        "base64": b64,
+        "filename": "submission.txt",
+        "properties": {
+            "webhooks": {"status": webhook},
+            "sandbox": _sandbox(),
+            "developerPayload": str(scan_id)[:512],
+        },
+    }
+    r = requests.put(
+        _SUBMIT_URL.format(scan_id=scan_id),
+        json=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        timeout=timeout,
+    )
+    r.raise_for_status()
+
+
+def _score_to_percent(agg) -> Any:
+    """aggregatedScore can arrive as a 0-1 fraction or a 0-100 percent; normalize to 0-100."""
+    try:
+        v = float(agg)
+    except (TypeError, ValueError):
+        return None
+    pct = v * 100 if v <= 1.0 else v
+    return max(0, min(100, round(pct)))
+
+
+def _source_url(item: Dict[str, Any]) -> str:
+    url = (item.get("url") or "").strip()
+    if url:
+        return url
+    meta = item.get("metadata") or {}
+    return (meta.get("finalUrl") or meta.get("canonicalUrl") or "").strip()
+
+
+def parse_completion_webhook(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Map a Copyleaks scan-completed webhook body to a compact plagiarism result:
+    {percent, word buckets, totalWords, sources:[{url,title,matchedWords,kind}]}."""
+    results = (payload or {}).get("results") or {}
+    score = results.get("score") or {}
+    scanned = (payload or {}).get("scannedDocument") or {}
+    sources = []
+    for kind in ("internet", "database", "batch", "repositories"):
+        for s in (results.get(kind) or []):
+            if not isinstance(s, dict):
+                continue
+            url = _source_url(s)
+            sources.append({
+                "url": url,
+                "title": (s.get("title") or "").strip() or url or "source",
+                "matchedWords": s.get("matchedWords"),
+                "kind": kind,
+            })
+    sources.sort(key=lambda x: (x.get("matchedWords") or 0), reverse=True)
+    return {
+        "engine": "copyleaks",
+        "status": "completed",
+        "percent": _score_to_percent(score.get("aggregatedScore")),
+        "identicalWords": score.get("identicalWords"),
+        "minorChangedWords": score.get("minorChangedWords"),
+        "relatedMeaningWords": score.get("relatedMeaningWords"),
+        "totalWords": scanned.get("totalWords"),
+        "sources": sources[:10],
+        "count": len(sources),
+    }
