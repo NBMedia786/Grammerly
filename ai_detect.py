@@ -35,7 +35,8 @@ def _generate(prompt: str) -> str:
     return ungrounded_generate(prompt, temperature=0.0)
 
 
-def run_ai_detection(text: str) -> Dict[str, Any]:
+def _gemini_ai_detection(text: str) -> Dict[str, Any]:
+    """Free heuristic estimate via a single ungrounded Gemini pass (unreliable indicator)."""
     prompt = _PROMPT.replace("{script}", text or "")
     try:
         raw = _generate(prompt)
@@ -48,4 +49,18 @@ def run_ai_detection(text: str) -> Dict[str, Any]:
         likelihood = 0
     likelihood = max(0, min(100, likelihood))
     reasoning = str(data.get("reasoning") or "").strip()
-    return {"likelihood": likelihood, "band": _band(likelihood), "reasoning": reasoning}
+    return {"likelihood": likelihood, "band": _band(likelihood),
+            "reasoning": reasoning, "source": "gemini"}
+
+
+def run_ai_detection(text: str) -> Dict[str, Any]:
+    """Prefer the Copyleaks AI Detector (accurate) when configured; otherwise fall back to the
+    free Gemini heuristic. Any Copyleaks error (no key, hiccup, too-short text) falls back too,
+    so the check never breaks."""
+    try:
+        import copyleaks_client
+        if copyleaks_client.available():
+            return copyleaks_client.ai_detection(text)
+    except Exception:
+        pass
+    return _gemini_ai_detection(text)

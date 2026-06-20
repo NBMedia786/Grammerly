@@ -333,8 +333,12 @@ def originality(body: OriginalityIn):
         ai = run_ai_detection(text)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI detection failed: {e}")
-    ai["disclaimer"] = ("Rough estimate — automated AI detection is unreliable. "
-                        "Treat this as a signal, not a verdict.")
+    if ai.get("source") == "copyleaks":
+        ai["disclaimer"] = ("Powered by the Copyleaks AI Detector. "
+                            "Still a probability, not absolute proof — use your judgment.")
+    else:
+        ai["disclaimer"] = ("Rough estimate — automated AI detection is unreliable. "
+                            "Treat this as a signal, not a verdict.")
 
     try:
         plag = run_plagiarism_check(text)
