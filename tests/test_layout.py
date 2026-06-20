@@ -58,6 +58,28 @@ def test_two_column_table_without_visuals_is_single_column():
     assert "narration line one" in r["text"]
 
 
+def test_smart_align_splits_one_row_by_visual_cues():
+    # One big VO row whose Visuals cell is cue-anchored clips -> split so each clip aligns.
+    vo = ("Officers arrive and the case is not as it seemed. They look for a lead to work on. "
+          "Later they check with the neighbors. Finally they assemble the puzzle.")
+    visuals = ("as it seemed. 04:02 - 04:18 clip1.mp4\n"
+               "to work on. 01:33 - 01:55 clip2.mp4\n"
+               "the neighbors. 20:40 - 20:46 clip3.mp4\n"
+               "the puzzle. 22:31 - 22:45 clip4.mp4")
+    path = _make_table_docx([(vo, visuals)])
+    try:
+        r = load_script_structured(path)
+    finally:
+        os.remove(path)
+    rows, text = r["layout"]["rows"], r["text"]
+    assert len(rows) >= 4  # split into per-clip rows instead of one bunched cell
+    assert "\n\n".join(text[x["vo_start"]:x["vo_end"]] for x in rows) == text
+    # each row's VO chunk ends near its cue, paired with that clip
+    assert text[rows[0]["vo_start"]:rows[0]["vo_end"]].rstrip().endswith("as it seemed.")
+    assert "clip1.mp4" in rows[0]["visuals"]
+    assert "clip4.mp4" in rows[3]["visuals"]
+
+
 def test_plain_paragraph_doc_has_no_layout():
     doc = Document()
     doc.add_paragraph("This is a normal single-column paragraph script with plenty of words.")

@@ -191,6 +191,65 @@ def _cell_text(cell) -> str:
     return _normalize_text("\n".join(b for b in bits if b))
 
 
+_MEDIA_RE = re.compile(r'\.(?:mp4|wav|m4a|mov|mp3|mkv|avi|jpg|jpeg|png)\b', re.I)
+_TIMECODE_RE = re.compile(r'\d{1,2}:\d{2}')
+
+
+def _split_visual_clips(visuals: str) -> List[str]:
+    """Split a visuals cell into individual clip entries, one per media file."""
+    out, last = [], 0
+    for m in _MEDIA_RE.finditer(visuals):
+        chunk = visuals[last:m.end()].strip()
+        if chunk:
+            out.append(chunk)
+        last = m.end()
+    tail = visuals[last:].strip()
+    if tail:
+        out.append(tail)
+    return out
+
+
+def _clip_cue(clip: str) -> str:
+    """The VO 'cue' is the text before the first timecode in a clip entry
+    (e.g. 'as it seemed.' in 'as it seemed. 04:02 - 04:18 1 - Cops arrive...mp4')."""
+    m = _TIMECODE_RE.search(clip)
+    if not m:
+        return ""
+    return clip[:m.start()].strip().strip('.,;:-—–"“”\'’ \n\t')
+
+
+def _smart_align(vo: str, visuals: str):
+    """When a visuals cell is cue-anchored clips, split the VO at each cue so every clip sits
+    beside the VO line it references. Returns [(vo_chunk, clip_text)] or None (-> keep one row).
+    All-or-nothing: if any cue can't be located in order, fall back so it never mis-aligns."""
+    clips = _split_visual_clips(visuals)
+    if len(clips) < 2:
+        return None
+    anchors = []
+    search_from = 0
+    low = vo.lower()
+    for clip in clips:
+        cue = _clip_cue(clip)
+        if len(cue) < 4:
+            return None
+        idx = low.find(cue.lower(), search_from)
+        if idx == -1:
+            return None  # cue not found in order -> don't risk a wrong alignment
+        end = idx + len(cue)
+        dot = vo.find('.', end)            # extend to the sentence end for a clean split
+        anchor = (dot + 1) if dot != -1 else end
+        anchors.append((anchor, clip))
+        search_from = anchor
+    rows, prev = [], 0
+    for anchor, clip in anchors:
+        rows.append((vo[prev:anchor].strip(), clip))
+        prev = anchor
+    tail = vo[prev:].strip()
+    if tail:
+        rows.append((tail, ""))
+    return rows if len(rows) >= 2 else None
+
+
 def _extract_docx_columns(docx_path: str):
     """If the doc is a two-column VO|Visuals table (with real visuals), return
     (layout, vo_text): vo_text is the concatenated VO column (what gets analyzed) and
@@ -229,11 +288,15 @@ def _extract_docx_columns(docx_path: str):
 
     rows, parts, pos, SEP = [], [], 0, "\n\n"
     for vo, vis in rows_src:
-        start = pos
-        parts.append(vo)
-        pos += len(vo)
-        rows.append({"vo_start": start, "vo_end": pos, "visuals": vis})
-        pos += len(SEP)
+        # If one big row's visuals are cue-anchored clips, split it so each clip aligns to
+        # the VO line it references; otherwise keep the row as-is.
+        aligned = _smart_align(vo, vis) if vis else None
+        for sub_vo, sub_vis in (aligned or [(vo, vis)]):
+            start = pos
+            parts.append(sub_vo)
+            pos += len(sub_vo)
+            rows.append({"vo_start": start, "vo_end": pos, "visuals": sub_vis})
+            pos += len(SEP)
     return {"preamble": "\n".join(preamble), "rows": rows}, SEP.join(parts)
 
 
