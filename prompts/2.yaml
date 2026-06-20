@@ -7,7 +7,16 @@ content: |
     Flag British/Commonwealth spellings and fix them to the US form, e.g.:
       colour->color, realise->realize, defence->defense, travelling->traveling,
       centre->center, organise->organize, analyse->analyze, grey->gray,
-      apologise->apologize, neighbour->neighbor, favourite->favorite, cancelled->canceled.
+      apologise->apologize, neighbour->neighbor, favourite->favorite, cancelled->canceled,
+      hospitalisation->hospitalization, sombre->somber, vandalise->vandalize, towards->toward.
+
+    Also flag:
+      - British spellings INSIDE bracketed VO cues, e.g. "[Sombre]" -> "[Somber]".
+      - Obvious garbled/typo'd known terms: "CRP" -> "CPR", "examin" -> "examine".
+      - Internal INCONSISTENCY within one script: the same word spelled US in one place and
+        British in another ("hospitalized" alongside "hospitalisation"), or a name spelled two
+        ways ("Otero"/"OTREO", "Jeffrey"/"Jeffery", "Annabella"/"Annabelle"). Flag the inconsistency.
+    Do NOT flag correct US forms (jewelry, neighbors, recognized, reexamined).
 
     For each misspelling add an Area of Improvement:
       - quote_verbatim — the exact misspelled word or short phrase, ≤240 chars.
