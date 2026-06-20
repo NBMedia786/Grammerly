@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -369,3 +369,25 @@ def originality(body: OriginalityIn):
         "spans": spans,
         "aoi": aoi,
     }
+
+
+# --- Serve the built frontend (single-port deploy) --------------------------------
+# When frontend/dist exists (after `npm run build`), this server ALSO serves the SPA, so the
+# whole app runs behind ONE port and a simple `reverse_proxy host:PORT`. API routes above are
+# registered first, so they always win; this catch-all only handles everything else.
+_FRONTEND_DIST = (_REPO_ROOT / "frontend" / "dist").resolve()
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_spa(full_path: str):
+    # Never let the catch-all swallow an (unknown) API path — return a real 404 for those.
+    if full_path.startswith("api"):
+        raise HTTPException(status_code=404, detail="Not found")
+    if not _FRONTEND_DIST.is_dir():
+        raise HTTPException(status_code=503, detail="Frontend not built — run `npm run build` in frontend/")
+    # Serve a real built file when it exists (assets, favicon, ...), guarding against traversal.
+    candidate = (_FRONTEND_DIST / full_path).resolve()
+    if full_path and candidate.is_file() and str(candidate).startswith(str(_FRONTEND_DIST)):
+        return FileResponse(str(candidate))
+    # Otherwise fall back to index.html (SPA client-side routing).
+    return FileResponse(str(_FRONTEND_DIST / "index.html"))
