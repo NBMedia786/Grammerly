@@ -29,7 +29,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from utils1 import load_script_file, extract_review_json, PARAM_ORDER
+from utils1 import load_script_file, load_script_structured, extract_review_json, PARAM_ORDER
 from review_engine_multi import run_review_multi
 from matching import build_spans_by_param, locate_quote, PARAM_COLORS
 from factcheck import run_fact_check
@@ -97,8 +97,9 @@ def health():
     return {"status": "ok"}
 
 
-def _analyze_text(script_text: str, title: str, on_progress=None) -> dict:
-    """Run the full AI review pipeline and return the response dict."""
+def _analyze_text(script_text: str, title: str, on_progress=None, layout=None) -> dict:
+    """Run the full AI review pipeline and return the response dict.
+    `layout` (optional) is a two-column VO|Visuals structure for table-based scripts."""
     # --- Run the AI review (Gemini calls via Vertex). Surface failures cleanly. ---
     try:
         review_text = run_review_multi(script_text=script_text, prompts_dir=PROMPTS_DIR,
@@ -184,6 +185,7 @@ def _analyze_text(script_text: str, title: str, on_progress=None) -> dict:
 
     response = {
         "script_text": script_text,
+        "layout": layout,  # two-column VO|Visuals rows (offsets into script_text), or None
         "scores": data.get("scores", {}),
         "overall_rating": data.get("overall_rating", ""),
         "strengths": data.get("strengths", []),
@@ -217,7 +219,7 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-def _stream_analysis(script_text: str, title: str) -> StreamingResponse:
+def _stream_analysis(script_text: str, title: str, layout=None) -> StreamingResponse:
     q: "queue.Queue" = queue.Queue()
 
     def on_progress(stage):
@@ -225,7 +227,7 @@ def _stream_analysis(script_text: str, title: str) -> StreamingResponse:
 
     def worker():
         try:
-            res = _analyze_text(script_text, title, on_progress=on_progress)
+            res = _analyze_text(script_text, title, on_progress=on_progress, layout=layout)
             q.put(("result", res))
         except HTTPException as he:
             q.put(("error", {"detail": str(he.detail)}))
@@ -271,14 +273,15 @@ async def analyze_file_stream(file: UploadFile = File(...)):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(raw); tmp_path = tmp.name
-        script_text = load_script_file(tmp_path)
+        struct = load_script_structured(tmp_path)
+        script_text, layout = struct["text"], struct["layout"]
     finally:
         if tmp_path:
             try: os.remove(tmp_path)
             except OSError: pass
     if len((script_text or "").strip()) < 50:
         raise HTTPException(status_code=422, detail="Extracted text looks too short. Check the file.")
-    return _stream_analysis(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded")
+    return _stream_analysis(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded", layout=layout)
 
 
 @app.post("/api/analyze")
@@ -292,14 +295,15 @@ async def analyze(file: UploadFile = File(...)):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(raw); tmp_path = tmp.name
-        script_text = load_script_file(tmp_path)
+        struct = load_script_structured(tmp_path)
+        script_text, layout = struct["text"], struct["layout"]
     finally:
         if tmp_path:
             try: os.remove(tmp_path)
             except OSError: pass
     if len((script_text or "").strip()) < 50:
         raise HTTPException(status_code=422, detail="Extracted text looks too short. Check the file.")
-    return _analyze_text(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded")
+    return _analyze_text(script_text, os.path.splitext(os.path.basename(filename))[0] or "uploaded", layout=layout)
 
 
 @app.post("/api/analyze-text")

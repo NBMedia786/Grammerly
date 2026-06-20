@@ -174,6 +174,74 @@ def load_script_file(path: str) -> str:
         return _load_pdf_text(path)
     return ""
 
+# -------------------- Two-column (VO | Visuals) layout -------------------- #
+_HEADER_VO = {"voiceover", "voice over", "voice-over", "narration", "vo", "vo script", "script"}
+_HEADER_VIS = {"visuals", "visual", "b-roll", "broll", ""}
+
+
+def _cell_text(cell) -> str:
+    bits: List[str] = []
+    for para in cell.paragraphs:
+        bits.append(_paragraph_text_with_breaks(para))
+    for nt in cell._tc.iterchildren():
+        if isinstance(nt, CT_Tbl):
+            nested = _text_from_table(Table(nt, cell._parent))
+            if nested:
+                bits.append(nested)
+    return _normalize_text("\n".join(b for b in bits if b))
+
+
+def _extract_docx_columns(docx_path: str):
+    """If the doc is a two-column VO|Visuals table (with real visuals), return
+    (layout, vo_text): vo_text is the concatenated VO column (what gets analyzed) and
+    layout = {'rows': [{'vo_start', 'vo_end', 'visuals'}]} with offsets into vo_text.
+    Otherwise (None, None) so the caller falls back to the flat single-column text."""
+    doc = Document(docx_path)
+    segments = []  # (vo, visuals)
+    found_2col = False
+    for block in _iter_block_items(doc):
+        if isinstance(block, Paragraph):
+            t = _normalize_text(_text_from_paragraph(block))
+            if t:
+                segments.append((t, ""))
+        elif isinstance(block, Table):
+            if len(block.columns) == 2:
+                found_2col = True
+                for row in block.rows:
+                    cells = row.cells
+                    vo, vis = _cell_text(cells[0]), _cell_text(cells[1])
+                    if vo.lower() in _HEADER_VO and vis.lower() in _HEADER_VIS:
+                        continue  # the "Voice Over | Visuals" header row
+                    if not vo and not vis:
+                        continue
+                    segments.append((vo, vis))
+            else:
+                t = _normalize_text(_text_from_table(block))
+                if t:
+                    segments.append((t, ""))
+    if not found_2col or not any(vis for _, vis in segments):
+        return None, None
+
+    rows, parts, pos, SEP = [], [], 0, "\n\n"
+    for vo, vis in segments:
+        start = pos
+        parts.append(vo)
+        pos += len(vo)
+        rows.append({"vo_start": start, "vo_end": pos, "visuals": vis})
+        pos += len(SEP)
+    return {"rows": rows}, SEP.join(parts)
+
+
+def load_script_structured(path: str) -> Dict[str, Any]:
+    """Like load_script_file, but also returns a two-column layout when the source is a
+    VO|Visuals table: {'text': <vo text>, 'layout': {'rows': [...]} | None}. `text` is what
+    the analysis runs on, so highlight spans (offsets into `text`) map onto the VO cells."""
+    if os.path.splitext(path)[1].lower() == ".docx":
+        layout, text = _extract_docx_columns(path)
+        if layout and text:
+            return {"text": text, "layout": layout}
+    return {"text": load_script_file(path), "layout": None}
+
 # -------------------- JSON extraction helpers -------------------- #
 BEGIN_JSON_TOKEN = "BEGIN_JSON"
 END_JSON_TOKEN = "END_JSON"

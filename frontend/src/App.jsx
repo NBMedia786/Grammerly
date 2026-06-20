@@ -375,6 +375,7 @@ export default function App() {
           <div className="script-col">
             <ScriptView
               text={result.script_text}
+              layout={result.layout}
               spans={visibleSpans}
               decisions={decisions}
               aoi={result.aoi}

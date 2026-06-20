@@ -420,6 +420,38 @@ button { font-family: inherit; }
   margin: 0;
 }
 
+/* Two-column VO | Visuals layout (mirrors the uploaded Word table) */
+.docwrap-wide { max-width: 1040px; }
+.vo-table { display: flex; flex-direction: column; }
+.vo-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  border-bottom: 1px solid var(--line);
+}
+.vo-row:last-child { border-bottom: none; }
+.vo-head {
+  font-family: var(--sans, 'Inter', system-ui, sans-serif);
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); border-bottom: 2px solid var(--line);
+}
+.vo-cell {
+  font-family: var(--serif); font-size: 17px; line-height: 1.8; color: #23252c;
+  white-space: pre-wrap; word-break: break-word; min-width: 0;
+  padding: 14px 22px 14px 0; border-right: 1px solid var(--line);
+}
+.vis-cell {
+  font-family: var(--sans, 'Inter', system-ui, sans-serif);
+  font-size: 12.5px; line-height: 1.6; color: var(--muted);
+  white-space: pre-wrap; word-break: break-word; min-width: 0;
+  padding: 14px 0 14px 18px;
+}
+.vo-head .vo-cell, .vo-head .vis-cell { padding-top: 0; color: var(--muted); border-right-color: transparent; }
+@media (max-width: 760px) {
+  .vo-row { grid-template-columns: 1fr; }
+  .vo-cell { border-right: none; padding: 12px 0 4px; }
+  .vis-cell { padding: 0 0 12px; }
+}
+
 /* proofreader marks: colored underline, not a highlighter block */
 .mark {
   cursor: pointer;
