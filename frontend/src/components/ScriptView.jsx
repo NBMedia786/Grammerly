@@ -41,6 +41,7 @@ export default function ScriptView({ text, layout, spans, decisions, aoi, active
   if (layout && Array.isArray(layout.rows) && layout.rows.length) {
     return (
       <div className="docwrap docwrap-wide">
+        {layout.preamble && <div className="vo-preamble">{layout.preamble}</div>}
         <div className="vo-table">
           <div className="vo-row vo-head">
             <div className="vo-cell">Voice Over</div>

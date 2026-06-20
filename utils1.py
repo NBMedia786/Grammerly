@@ -194,42 +194,47 @@ def _cell_text(cell) -> str:
 def _extract_docx_columns(docx_path: str):
     """If the doc is a two-column VO|Visuals table (with real visuals), return
     (layout, vo_text): vo_text is the concatenated VO column (what gets analyzed) and
-    layout = {'rows': [{'vo_start', 'vo_end', 'visuals'}]} with offsets into vo_text.
-    Otherwise (None, None) so the caller falls back to the flat single-column text."""
+    layout = {'preamble': <title/notes above the table>, 'rows': [{'vo_start','vo_end','visuals'}]}
+    with offsets into vo_text. Otherwise (None, None) -> caller uses flat single-column text."""
     doc = Document(docx_path)
-    segments = []  # (vo, visuals)
+    preamble: List[str] = []   # paragraphs/title BEFORE the table (not analyzed)
+    rows_src = []              # [(vo, visuals)] table content rows
     found_2col = False
+    seen_table = False
     for block in _iter_block_items(doc):
         if isinstance(block, Paragraph):
             t = _normalize_text(_text_from_paragraph(block))
-            if t:
-                segments.append((t, ""))
-        elif isinstance(block, Table):
-            if len(block.columns) == 2:
-                found_2col = True
-                for row in block.rows:
-                    cells = row.cells
-                    vo, vis = _cell_text(cells[0]), _cell_text(cells[1])
-                    if vo.lower() in _HEADER_VO and vis.lower() in _HEADER_VIS:
-                        continue  # the "Voice Over | Visuals" header row
-                    if not vo and not vis:
-                        continue
-                    segments.append((vo, vis))
+            if not t:
+                continue
+            if seen_table:
+                rows_src.append((t, ""))       # stray paragraph after the table -> VO-only row
             else:
-                t = _normalize_text(_text_from_table(block))
-                if t:
-                    segments.append((t, ""))
-    if not found_2col or not any(vis for _, vis in segments):
+                preamble.append(t)             # title / notes above the table
+        elif isinstance(block, Table) and len(block.columns) == 2:
+            found_2col = True
+            seen_table = True
+            for row in block.rows:
+                vo, vis = _cell_text(row.cells[0]), _cell_text(row.cells[1])
+                if vo.lower() in _HEADER_VO and vis.lower() in _HEADER_VIS:
+                    continue  # the "Voice Over | Visuals" header row
+                if not vo and not vis:
+                    continue
+                rows_src.append((vo, vis))
+        elif isinstance(block, Table):
+            t = _normalize_text(_text_from_table(block))
+            if t:
+                (rows_src.append((t, "")) if seen_table else preamble.append(t))
+    if not found_2col or not any(vis for _, vis in rows_src):
         return None, None
 
     rows, parts, pos, SEP = [], [], 0, "\n\n"
-    for vo, vis in segments:
+    for vo, vis in rows_src:
         start = pos
         parts.append(vo)
         pos += len(vo)
         rows.append({"vo_start": start, "vo_end": pos, "visuals": vis})
         pos += len(SEP)
-    return {"rows": rows}, SEP.join(parts)
+    return {"preamble": "\n".join(preamble), "rows": rows}, SEP.join(parts)
 
 
 def load_script_structured(path: str) -> Dict[str, Any]:

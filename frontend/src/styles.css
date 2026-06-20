@@ -422,34 +422,42 @@ button { font-family: inherit; }
 
 /* Two-column VO | Visuals layout (mirrors the uploaded Word table) */
 .docwrap-wide { max-width: 1040px; }
-.vo-table { display: flex; flex-direction: column; }
+.vo-preamble {
+  font-family: var(--serif); font-size: 14px; line-height: 1.7; color: var(--muted);
+  white-space: pre-wrap; word-break: break-word; margin: 0 0 18px;
+}
+.vo-table {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+}
 .vo-row {
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  align-items: start;                 /* top-align VO with its Visuals */
   border-bottom: 1px solid var(--line);
 }
 .vo-row:last-child { border-bottom: none; }
 .vo-head {
   font-family: var(--sans, 'Inter', system-ui, sans-serif);
-  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-  color: var(--muted); border-bottom: 2px solid var(--line);
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); background: #faf9f6;
 }
 .vo-cell {
-  font-family: var(--serif); font-size: 17px; line-height: 1.8; color: #23252c;
+  font-family: var(--serif); font-size: 16.5px; line-height: 1.8; color: #23252c;
   white-space: pre-wrap; word-break: break-word; min-width: 0;
-  padding: 14px 22px 14px 0; border-right: 1px solid var(--line);
+  padding: 14px 20px; border-right: 1px solid var(--line);
 }
 .vis-cell {
   font-family: var(--sans, 'Inter', system-ui, sans-serif);
   font-size: 12.5px; line-height: 1.6; color: var(--muted);
   white-space: pre-wrap; word-break: break-word; min-width: 0;
-  padding: 14px 0 14px 18px;
+  padding: 14px 18px;
 }
-.vo-head .vo-cell, .vo-head .vis-cell { padding-top: 0; color: var(--muted); border-right-color: transparent; }
+.vo-head .vo-cell, .vo-head .vis-cell { padding: 10px 18px; color: var(--muted); }
 @media (max-width: 760px) {
-  .vo-row { grid-template-columns: 1fr; }
-  .vo-cell { border-right: none; padding: 12px 0 4px; }
-  .vis-cell { padding: 0 0 12px; }
+  .vo-row { grid-template-columns: 1fr; align-items: stretch; }
+  .vo-cell { border-right: none; border-bottom: 1px dashed var(--line); padding: 12px 14px; }
+  .vis-cell { padding: 10px 14px; }
 }
 
 /* proofreader marks: colored underline, not a highlighter block */
