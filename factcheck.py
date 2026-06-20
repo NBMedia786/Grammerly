@@ -28,19 +28,35 @@ Read the SCRIPT and extract EVERY checkable factual claim. Pay special attention
 - places and geography
 - numbers, statistics, measurements and records ("largest", "oldest", "fastest")
 
-For each claim decide one verdict:
-- "correct"      -> matches authoritative real-world facts
-- "incorrect"    -> contradicts authoritative facts
-- "unverifiable" -> a checkable factual claim you cannot confirm or deny from reliable sources
+For each claim decide one verdict. Calibrate the verdict to your CONFIDENCE:
+- "correct"      -> reliable sources clearly support it.
+- "incorrect"    -> reliable sources CLEARLY and CONSISTENTLY contradict it (e.g. a date, name,
+                    or number that is plainly wrong by the weight of evidence). Use red
+                    "incorrect" ONLY when you are confident the claim is simply wrong.
+- "unverifiable" -> you cannot confirm it from reliable sources, OR sources DISAGREE with each
+                    other, OR the claim is close-but-imprecise or conflates two related facts
+                    (e.g. it names a REAL date but attaches it to the WRONG event, or it is off
+                    by a detail). This is the amber "needs checking" bucket.
+
+WHEN UNSURE between "incorrect" and "unverifiable", always choose "unverifiable". Reserve
+"incorrect" for clear, sourced contradictions — do NOT use it for facts that are merely
+contested, ambiguous, or unconfirmable.
+
+DATES especially: if sources give differing dates, or you cannot confirm the EXACT date, or the
+date is right but tied to the wrong event, mark "unverifiable" (NOT "incorrect"). Only mark a
+date "incorrect" when reliable sources agree it is wrong.
 
 STRICT RULES:
 - "quote_verbatim" MUST be copied EXACTLY from the script (a real substring) so it can be highlighted.
 - For "incorrect": "correction" MUST be a DROP-IN REPLACEMENT for quote_verbatim with the fact fixed,
   keeping the same wording where possible. Example: quote "the war ended in 1944" -> correction "the war ended in 1945".
-- For "correct"/"unverifiable": "correction" may be "".
+- For "unverifiable": leave "correction" empty, and in "explanation" say briefly what is uncertain
+  or how sources differ (e.g. "Sources date the body's discovery to June 13-14; none confirm she
+  was reported missing on June 13.").
+- For "correct": "correction" may be "".
 - "sources" = up to 3 source URLs (or source names) you relied on. May be empty.
 - Do NOT flag opinions, jokes, predictions, or obvious dramatization. Only judge concrete, checkable facts.
-- Prefer precision on DATES and NUMBERS.
+- Prefer precision on DATES and NUMBERS, but express uncertainty as "unverifiable", not "incorrect".
 
 Return ONLY JSON between the markers, nothing else:
 BEGIN_JSON
