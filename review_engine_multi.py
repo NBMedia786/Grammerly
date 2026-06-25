@@ -352,6 +352,40 @@ class AggregatorAll(BaseModel):
     corrected_text: str
 
 # -----------------------------------------------------------------------------#
+# English variant (British vs American) — swapped into the preamble's {ENGLISH_RULES}
+# token based on the ENGLISH_VARIANT env var. Default: british.
+# -----------------------------------------------------------------------------#
+_US_ENGLISH_RULES = (
+    "AMERICAN (US) ENGLISH everywhere, including inside VO cues. Treat British/Commonwealth forms\n"
+    "    as errors and fix them to the US form:\n"
+    "      * Spelling: color (not colour), realize (not realise), defense (not defence), traveling,\n"
+    "        center, organize, analyze, gray, toward (not towards), canceled, hospitalization\n"
+    "        (not hospitalisation), somber (not sombre), vandalize (not vandalise), neighbor.\n"
+    "      * Usage: \"taken to THE hospital\" (not \"to hospital\"); US usage (gotten, math, apartment).\n"
+    "      * Punctuation: commas and periods go INSIDE quotation marks; \"a.m.\"/\"p.m.\" with the period."
+)
+_BRITISH_ENGLISH_RULES = (
+    "BRITISH (UK) ENGLISH everywhere, including inside VO cues. Treat American forms as errors and\n"
+    "    fix them to the British form:\n"
+    "      * Spelling: colour (not color), realise (not realize), defence (not defense), travelling\n"
+    "        (not traveling), centre (not center), organise, analyse, grey (not gray), towards,\n"
+    "        cancelled (not canceled), hospitalisation (not hospitalization), sombre (not somber),\n"
+    "        vandalise (not vandalize), neighbour (not neighbor), apologise, favourite.\n"
+    "      * Usage: British usage where it differs (e.g. \"in hospital\", \"maths\"); do NOT flag\n"
+    "        \"taken to hospital\" — that is correct British idiom.\n"
+    "      * Punctuation: British style — single quotation marks are acceptable as primary, and\n"
+    "        commas/periods go OUTSIDE the quotation marks unless they belong to the quote."
+)
+
+
+def _apply_english_variant(preamble: str) -> str:
+    """Replace the {ENGLISH_RULES} token in the preamble with the US or British rule block."""
+    variant = (os.getenv("ENGLISH_VARIANT") or "british").strip().lower()
+    rules = _US_ENGLISH_RULES if variant in ("us", "american", "en-us", "us-english") else _BRITISH_ENGLISH_RULES
+    return preamble.replace("{ENGLISH_RULES}", rules)
+
+
+# -----------------------------------------------------------------------------#
 # Core runner
 # -----------------------------------------------------------------------------#
 def run_review_multi(
@@ -373,9 +407,9 @@ def run_review_multi(
     _require_vertex_config()
     llm = _make_llm(temperature)
 
-    # Shared preamble (7.yaml) if present
+    # Shared preamble (8.yaml) — inject the chosen English variant (british | us) into it.
     try:
-        global_preamble = _load_prompt(prompts_dir, 8).strip()
+        global_preamble = _apply_english_variant(_load_prompt(prompts_dir, 8).strip())
         if global_preamble:
             global_preamble += "\n\n"
     except FileNotFoundError:

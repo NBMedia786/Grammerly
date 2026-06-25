@@ -20,26 +20,20 @@ content: |
       * Mixed straight vs curly quotes/apostrophes — do NOT flag this.
       * Numerals/digits ("10-month-old", "shoots 3 times", "$10,000") — do NOT spell them out.
       * Bracketed VO delivery cues at line starts — [tense], [sombre, tense], [high emotion],
-        [fast] — leave them structurally alone (but DO flag a British spelling inside one).
+        [fast] — leave them structurally alone (but DO flag a wrong-variant spelling inside one,
+        per the English-variant rules below).
       * Bare section-label headers ("Intro", "Motive", "Sentencing", "Police at crime scene")
         and their casing — do NOT grammar- or punctuation-flag them.
       * Wordiness, redundancy, repetition for emphasis, "show don't tell", flow/clarity, or any
         other SUBJECTIVE style opinion.
 
     CONFIDENCE GATE: flag ONLY a concrete, mechanical error you are highly confident about — a
-    typo, a misspelling, a British spelling, a clear grammar error, or a punctuation typo. If it
+    typo, a misspelling, a wrong-variant (US vs British) spelling, a clear grammar error, or a
+    punctuation typo. If it
     is a judgment call, a matter of taste, or you are unsure, STAY SILENT. Over-flagging correct
     house style is the worst outcome.
 
-    AMERICAN (US) ENGLISH everywhere, including inside VO cues. Treat British forms as errors and
-    fix to the US form:
-      * Spelling: color (not colour), realize (not realise), defense, traveling, center, organize,
-        analyze, gray, toward (not towards), canceled, hospitalization (not hospitalisation),
-        somber (not sombre), vandalize (not vandalise), neighbor (not neighbour).
-      * Usage: "taken to THE hospital" (not "shifted to hospital"); "to her residence" (not
-        "to residence").
-      * Punctuation: commas and periods go INSIDE quotation marks; write "a.m." / "p.m." with the
-        trailing period.
+    {ENGLISH_RULES}
 
     OUTPUT RULES:
     - Be precise and conservative: only flag genuine errors that pass the gate above.
