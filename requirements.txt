@@ -1,5 +1,6 @@
 python-docx
 PyPDF2
+pdf2docx
 pyyaml
 python-dotenv
 pydantic>=2

@@ -9,6 +9,13 @@ try:
 except Exception:
     PdfReader = None  # type: ignore
 
+# Optional PDF -> DOCX conversion (rebuilds tables a flat PDF reader would mangle into
+# one-word-per-line, so a PDF of a VO|Visuals table can be analyzed like the .docx).
+try:
+    from pdf2docx import Converter as _Pdf2DocxConverter
+except Exception:
+    _Pdf2DocxConverter = None  # type: ignore
+
 # DOCX helpers
 from docx import Document
 from docx.oxml.table import CT_Tbl
@@ -159,6 +166,29 @@ def _load_pdf_text(path: str) -> str:
     except Exception:
         return ""
 
+
+def _pdf_to_docx(pdf_path: str) -> Optional[str]:
+    """Convert a PDF to .docx so a VO|Visuals table is rebuilt as a real Word table
+    (a flat PDF reader collapses tables into one word per line). Returns the temp .docx
+    path, or None if pdf2docx isn't installed or the conversion fails."""
+    if _Pdf2DocxConverter is None:
+        return None
+    docx_path = pdf_path + ".converted.docx"
+    try:
+        cv = _Pdf2DocxConverter(pdf_path)
+        try:
+            cv.convert(docx_path)   # all pages
+        finally:
+            cv.close()
+        return docx_path if os.path.exists(docx_path) else None
+    except Exception:
+        try:
+            if os.path.exists(docx_path):
+                os.remove(docx_path)
+        except Exception:
+            pass
+        return None
+
 # -------------------- Public file loader -------------------- #
 def load_script_file(path: str) -> str:
     ext = os.path.splitext(path)[1].lower()
@@ -304,8 +334,30 @@ def _extract_docx_columns(docx_path: str):
 def load_script_structured(path: str) -> Dict[str, Any]:
     """Like load_script_file, but also returns a two-column layout when the source is a
     VO|Visuals table: {'text': <vo text>, 'layout': {'rows': [...]} | None}. `text` is what
-    the analysis runs on, so highlight spans (offsets into `text`) map onto the VO cells."""
-    if os.path.splitext(path)[1].lower() == ".docx":
+    the analysis runs on, so highlight spans (offsets into `text`) map onto the VO cells.
+
+    A PDF of a VO|Visuals table flattens to one-word-per-line with a plain PDF reader, so we
+    first convert it to .docx and run it through the same proven DOCX table pipeline."""
+    ext = os.path.splitext(path)[1].lower()
+
+    if ext == ".pdf":
+        converted = _pdf_to_docx(path)
+        if converted:
+            try:
+                layout, text = _extract_docx_columns(converted)
+                if layout and text:
+                    return {"text": text, "layout": layout}
+                flat = load_script_file(converted)   # no table found, but still beats raw PDF text
+                if flat.strip():
+                    return {"text": flat, "layout": None}
+            finally:
+                try:
+                    os.remove(converted)
+                except Exception:
+                    pass
+        return {"text": load_script_file(path), "layout": None}   # conversion unavailable -> old path
+
+    if ext == ".docx":
         layout, text = _extract_docx_columns(path)
         if layout and text:
             return {"text": text, "layout": layout}
