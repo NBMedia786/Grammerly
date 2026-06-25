@@ -18,7 +18,7 @@ load_dotenv()
 
 _PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
 _LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
-_MODEL = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+_MODEL = os.getenv("FACTS_MODEL") or os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
 
 _PROMPT = """You are a rigorous fact-checker for short-video scripts.
 Read the SCRIPT and extract EVERY checkable factual claim. Pay special attention to:

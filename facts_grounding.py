@@ -14,6 +14,12 @@ def _model_name() -> str:
     return os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
 
 
+def _facts_model_name() -> str:
+    """The fact-check may run on a stronger model than the writing checks (better reasoning
+    over web evidence). Set FACTS_MODEL to override; falls back to GEMINI_MODEL, then Flash."""
+    return os.getenv("FACTS_MODEL") or os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+
+
 def _project() -> str | None:
     return os.getenv("GOOGLE_CLOUD_PROJECT") or None
 
@@ -35,7 +41,7 @@ def _grounded_call(prompt: str, temperature: float) -> str:
 
     client = _genai_client()
     resp = client.models.generate_content(
-        model=_model_name(),
+        model=_facts_model_name(),
         contents=prompt,
         config=types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())],
@@ -45,14 +51,14 @@ def _grounded_call(prompt: str, temperature: float) -> str:
     return getattr(resp, "text", "") or ""
 
 
-def _ungrounded_call(prompt: str, temperature: float) -> str:
-    """Plain Gemini on Vertex via google-genai (no search tool); used only if the
-    grounded call fails, so Facts never blocks the run."""
+def _ungrounded_call(prompt: str, temperature: float, model: str | None = None) -> str:
+    """Plain Gemini on Vertex via google-genai (no search tool). Runs on the writing model
+    (Flash) — used by AI-detection and as the cheap fallback when grounding fails."""
     from google.genai import types
 
     client = _genai_client()
     resp = client.models.generate_content(
-        model=_model_name(),
+        model=model or _model_name(),
         contents=prompt,
         config=types.GenerateContentConfig(temperature=temperature),
     )
@@ -64,12 +70,12 @@ def grounded_generate(prompt: str, temperature: float = 0.0) -> str:
     try:
         return _grounded_call(prompt, temperature)
     except Exception:
-        return _ungrounded_call(prompt, temperature)
+        return _ungrounded_call(prompt, temperature, _model_name())  # fallback on Flash
 
 
 def ungrounded_generate(prompt: str, temperature: float = 0.0) -> str:
-    """Plain (no search) Gemini call — used by AI-content detection."""
-    return _ungrounded_call(prompt, temperature)
+    """Plain (no search) Gemini call — used by AI-content detection (writing model)."""
+    return _ungrounded_call(prompt, temperature, _model_name())
 
 
 def resolve_url(uri: str, timeout: float = 5.0) -> str:
@@ -130,7 +136,7 @@ def grounded_generate_with_sources(prompt: str, temperature: float = 0.0):
             from google.genai import types
             client = _genai_client()
             resp = client.models.generate_content(
-                model=_model_name(),
+                model=_facts_model_name(),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
@@ -142,8 +148,8 @@ def grounded_generate_with_sources(prompt: str, temperature: float = 0.0):
             if attempt == 0:
                 time.sleep(0.8)
                 continue
-    # both grounded attempts failed — try plain, else give an empty-but-valid result
+    # both grounded attempts failed — try plain (Flash), else give an empty-but-valid result
     try:
-        return _ungrounded_call(prompt, temperature), []
+        return _ungrounded_call(prompt, temperature, _model_name()), []
     except Exception:
         return "", []
