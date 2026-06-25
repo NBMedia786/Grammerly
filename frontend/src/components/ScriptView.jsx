@@ -8,9 +8,15 @@ export default function ScriptView({ text, layout, spans, decisions, aoi, active
   const activeRef = useRef(null)
 
   useEffect(() => {
-    if (activeRef.current) {
-      activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
+    const el = activeRef.current
+    if (!el) return
+    // Scroll the SCRIPT panel (the .main scroll container) to center the active sentence.
+    // Scoped to .main so it isn't affected by the sticky sidebar's own scrolling.
+    const container = el.closest('.main')
+    if (!container) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return }
+    const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
+      - container.clientHeight / 2 + el.clientHeight / 2
+    container.scrollBy({ top: delta, behavior: 'smooth' })
   }, [activeAid])
 
   // Render an array of {kind:'text'|'mark', ...} segments into spans/marks.

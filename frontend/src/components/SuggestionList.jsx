@@ -17,7 +17,19 @@ function SuggestionCard({ item, color, decision, isActive, onSelect, onDecision 
   const isFact = item.kind === 'fact'
 
   useEffect(() => {
-    if (isActive && ref.current) ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (!isActive || !ref.current) return
+    // Scroll ONLY the sidebar to this card — never the page — so it doesn't override the
+    // script panel scrolling to the matching sentence. And only if the card is off-screen.
+    const container = ref.current.closest('.margin-col')
+    if (!container) { ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' }); return }
+    const cr = container.getBoundingClientRect()
+    const er = ref.current.getBoundingClientRect()
+    if (er.top < cr.top + 8 || er.bottom > cr.bottom - 8) {
+      container.scrollBy({
+        top: er.top - cr.top - container.clientHeight / 2 + ref.current.clientHeight / 2,
+        behavior: 'smooth',
+      })
+    }
   }, [isActive])
 
   const doCopy = async (e) => {
