@@ -470,7 +470,21 @@ button { font-family: inherit; }
 }
 .mark.mark-open { background: transparent; }
 .mark.mark-open:hover { background: color-mix(in srgb, var(--mk, #888) 12%, transparent); }
-.mark.active { background: color-mix(in srgb, var(--mk, #888) 18%, transparent); }
+.mark.active {
+  background: color-mix(in srgb, var(--mk, #888) 26%, transparent);
+  scroll-margin: 100px;                 /* don't land flush under a sticky header */
+  animation: mark-flash 1.1s ease;       /* pulse so you SEE which sentence it jumped to */
+}
+@keyframes mark-flash {
+  0%, 25% {
+    background: color-mix(in srgb, var(--mk, #888) 62%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mk, #888) 30%, transparent);
+  }
+  100% {
+    background: color-mix(in srgb, var(--mk, #888) 26%, transparent);
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
 .mark.mark-applied {
   color: #2e9e5b;
   border-bottom-color: transparent;
