@@ -19,6 +19,7 @@ PARAM_COLORS: Dict[str, str] = {
     "Grammar":         "#ff6b6b",
     "Spelling":        "#6b8cff",
     "Punctuation":     "#eab308",
+    "Concision":       "#ec4899",
 }
 
 STRICT_MATCH_ONLY = False

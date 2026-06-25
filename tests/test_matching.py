@@ -5,7 +5,7 @@ import matching
 
 def test_colors_are_writing_categories():
     assert set(matching.PARAM_COLORS.keys()) == {
-        "Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks"}
+        "Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Concision"}
 
 
 def test_short_heading_like_quote_still_locates():

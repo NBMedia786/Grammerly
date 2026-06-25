@@ -212,7 +212,7 @@ def _analyze_text(script_text: str, title: str, on_progress=None, layout=None) -
     return response
 
 
-STREAM_STAGES = ["Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Overall", "Fact-check"]
+STREAM_STAGES = ["Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Concision", "Overall", "Fact-check"]
 
 
 def _sse(event: str, data: dict) -> str:

@@ -14,7 +14,7 @@ def _spec(pid):
 
 
 def test_on_progress_fires_each_stage(monkeypatch):
-    seq = [_spec(p) for p in ("g", "s", "p", "t", "h")]
+    seq = [_spec(p) for p in ("g", "s", "p", "t", "h", "c")]
 
     class _LLM:
         def invoke(self, prompt): return _Resp(seq.pop(0))
@@ -40,4 +40,4 @@ def test_on_progress_fires_each_stage(monkeypatch):
     stages = []
     eng.run_review_multi("text", prompts_dir="x", temperature=0.0,
                          include_facts=False, on_progress=lambda s: stages.append(s))
-    assert stages == ["Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Overall"]
+    assert stages == ["Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Concision", "Overall"]

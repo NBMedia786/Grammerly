@@ -3,7 +3,7 @@ import utils1
 
 def test_param_order_is_five_writing_categories():
     assert utils1.PARAM_ORDER == [
-        "Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation", "Facts",
+        "Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation", "Concision", "Facts",
     ]
 
 

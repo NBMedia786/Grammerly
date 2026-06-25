@@ -263,7 +263,8 @@ export default function App() {
           <div className="checks">
             {[
               ['Tense', '#a78bfa'], ['Hooks', '#14b8a6'], ['Grammar', '#ff6b6b'],
-              ['Spelling', '#6b8cff'], ['Punctuation', '#eab308'], ['Facts', '#22c55e'],
+              ['Spelling', '#6b8cff'], ['Punctuation', '#eab308'], ['Concision', '#ec4899'],
+              ['Facts', '#22c55e'],
             ].map(([name, c]) => (
               <span className="check" key={name}>
                 <span className="check-dot" style={{ background: c, boxShadow: `0 0 0 3px ${c}22` }} />

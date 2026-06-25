@@ -14,7 +14,8 @@ def _specialist_json(pid, score):
 
 
 def test_include_facts_false_runs_only_five_writing_categories(monkeypatch):
-    seq = [_specialist_json(p, 8) for p in ("grammar", "spelling", "punctuation", "tense", "hooks")]
+    seq = [_specialist_json(p, 8)
+           for p in ("grammar", "spelling", "punctuation", "tense", "hooks", "concision")]
 
     class _LLM:
         def invoke(self, prompt): return _Resp(seq.pop(0))
@@ -43,5 +44,5 @@ def test_include_facts_false_runs_only_five_writing_categories(monkeypatch):
 
     out = eng.run_review_multi("text", prompts_dir="x", temperature=0.0, include_facts=False)
     data = json.loads(out.split("BEGIN_JSON")[1].split("END_JSON")[0])
-    assert set(data["scores"].keys()) == {"Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks"}
+    assert set(data["scores"].keys()) == {"Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Concision"}
     assert "Facts" not in data["per_parameter"]

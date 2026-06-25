@@ -17,10 +17,11 @@ def test_aggregator_has_placeholders():
 def test_preamble_exists():
     assert os.path.exists(os.path.join(PROMPTS, "8.yaml"))
 
-def test_no_stale_prompt_nine():
-    assert not os.path.exists(os.path.join(PROMPTS, "9.yaml"))
+def test_prompt_nine_is_concision():
+    assert os.path.exists(os.path.join(PROMPTS, "9.yaml"))
+    assert "concision" in _content(9).lower()
 
 def test_no_curly_quotes_in_prompts():
-    for n in (1, 2, 3, 4, 5, 6):
+    for n in (1, 2, 3, 4, 5, 6, 9):
         t = _content(n)
         assert "“" not in t and "”" not in t, f"prompt {n} has curly quotes"

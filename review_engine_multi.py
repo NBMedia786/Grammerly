@@ -322,6 +322,7 @@ DISPLAY_BY_INDEX = {
     5: "Hooks",
     6: "Facts",
     # 7 = aggregator, 8 = shared preamble
+    9: "Concision",
 }
 
 # -----------------------------------------------------------------------------#
@@ -418,8 +419,11 @@ def run_review_multi(
     scores: Dict[str, int] = {}
     per_parameter: Dict[str, Dict[str, Any]] = {}
 
-    last_specialist = 6 if include_facts else 5
-    for i in range(1, last_specialist + 1):
+    # Specialists run in this order; Concision (9) after Hooks, Facts (6, grounded) last.
+    specialist_indices = [1, 2, 3, 4, 5, 9]
+    if include_facts:
+        specialist_indices.append(6)
+    for i in specialist_indices:
         name = DISPLAY_BY_INDEX[i]
         if on_progress:
             on_progress(name)

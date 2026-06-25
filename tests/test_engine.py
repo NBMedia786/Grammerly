@@ -19,8 +19,9 @@ def _specialist_json(pid, score):
 
 
 def test_run_review_multi_builds_five_category_payload(monkeypatch):
-    # 5 writing specialists go through the langchain llm
-    seq = [_specialist_json(p, 8) for p in ("grammar", "spelling", "punctuation", "tense", "hooks")]
+    # 6 writing specialists go through the langchain llm (incl. Concision)
+    seq = [_specialist_json(p, 8)
+           for p in ("grammar", "spelling", "punctuation", "tense", "hooks", "concision")]
 
     class _LLM:
         def invoke(self, prompt): return _Resp(seq.pop(0))
@@ -60,7 +61,7 @@ def test_run_review_multi_builds_five_category_payload(monkeypatch):
     data = json.loads(out.split("BEGIN_JSON")[1].split("END_JSON")[0])
 
     assert set(data["scores"].keys()) == {
-        "Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Facts"}
+        "Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Concision", "Facts"}
     assert data["scores"]["Facts"] == 9
     assert data["overall_rating"] == 7
     assert data["corrected_text"] == "Corrected body."

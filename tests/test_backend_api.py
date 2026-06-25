@@ -28,7 +28,7 @@ def test_analyze_text_returns_writing_contract(monkeypatch, tmp_path):
     r = c.post("/api/analyze-text", json={"text": "They was late to the meeting. " * 3})
     assert r.status_code == 200
     j = r.json()
-    assert set(j["param_order"]) == {"Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation"}
+    assert set(j["param_order"]) == {"Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation", "Concision"}
     assert "viral_quotient" not in j and "drop_off_risks" not in j
     assert j["summary"] == "fine"
     assert j["saved"] is True

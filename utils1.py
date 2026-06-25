@@ -23,6 +23,7 @@ PARAM_ORDER: List[str] = [
     "Grammar",
     "Spelling",
     "Punctuation",
+    "Concision",
     "Facts",
 ]
 

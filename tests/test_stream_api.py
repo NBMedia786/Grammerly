@@ -15,7 +15,7 @@ def _app(monkeypatch, tmp_path):
     # mocked engine that still fires progress so the stream shows it
     def fake_engine(script_text, prompts_dir, temperature, include_facts, on_progress=None):
         if on_progress:
-            for s in ("Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Overall"):
+            for s in ("Grammar", "Spelling", "Punctuation", "Tense/Narrative", "Hooks", "Concision", "Overall"):
                 on_progress(s)
         return review
     monkeypatch.setattr(main, "run_review_multi", fake_engine)
@@ -35,7 +35,7 @@ def test_stream_emits_stages_progress_result(monkeypatch, tmp_path):
     # the result frame carries the writing param_order
     result_line = [l for l in body.splitlines() if l.startswith("data:") and "param_order" in l][0]
     data = json.loads(result_line[len("data:"):].strip())
-    assert set(data["param_order"]) == {"Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation"}
+    assert set(data["param_order"]) == {"Tense/Narrative", "Hooks", "Grammar", "Spelling", "Punctuation", "Concision"}
 
 
 def test_stream_short_text(monkeypatch, tmp_path):
