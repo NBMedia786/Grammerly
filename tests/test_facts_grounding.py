@@ -12,7 +12,7 @@ def test_falls_back_to_ungrounded_on_grounding_error(monkeypatch):
         calls["grounded"] += 1
         raise RuntimeError("grounding tool unavailable")
 
-    def fake_ungrounded(prompt, temperature):
+    def fake_ungrounded(prompt, temperature, model=None):
         calls["ungrounded"] += 1
         return "FALLBACK_TEXT"
 
